@@ -18,7 +18,7 @@ echo "⬆️ Upgrading installed packages..."
 brew upgrade
 
 echo "🎨 Installing Nerd Font (required for Starship)..."
-brew install --cask font-jetbrainsmono-nerd-font
+brew install --cask font-jetbrains-mono-nerd-font
 
 echo "🔧 Installing essential development tools..."
 brew install htop
