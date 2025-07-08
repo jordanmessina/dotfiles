@@ -176,6 +176,14 @@ else
     echo "✅ NVM installed successfully"
 fi
 
+echo "📦 Installing Vundle for Vim plugin management..."
+if [ -d "$HOME/.vim/bundle/Vundle.vim" ]; then
+    echo "✅ Vundle is already installed"
+else
+    git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
+    echo "✅ Vundle installed successfully"
+fi
+
 echo "🔗 Installing dotfiles with Stow..."
 if [ -d "$HOME/dotfiles" ] && [ "$(pwd)" = "$HOME/dotfiles" ]; then
     # Backup existing dotfiles that might conflict
@@ -210,6 +218,11 @@ if [ -d "$HOME/dotfiles" ] && [ "$(pwd)" = "$HOME/dotfiles" ]; then
     stow bash shell zsh tmux vim misc starship
     echo "✅ Dotfiles installed successfully!"
     
+    # Install vim plugins
+    echo "📦 Installing Vim plugins..."
+    vim +PluginInstall +qall
+    echo "✅ Vim plugins installed successfully!"
+    
     if [ -d "$backup_dir" ] && [ "$(ls -A "$backup_dir")" ]; then
         echo "📁 Original files backed up to: $backup_dir"
     else
@@ -229,9 +242,11 @@ if [[ "$OS" == "macos" ]]; then
     echo "2. Configure Starship: https://starship.rs/config/"
     echo "3. Install Node.js: nvm install --lts"
     echo "4. Install Python: pyenv install 3.11.0 && pyenv global 3.11.0"
+    echo "5. Vim plugins are ready! Use :PluginInstall in vim to add more"
 elif [[ "$OS" == "linux" ]]; then
     echo "1. Restart your terminal or run: source ~/.zshrc"
     echo "2. Configure Starship: https://starship.rs/config/"
     echo "3. Install Node.js: nvm install --lts"
     echo "4. Install Python: pyenv install 3.11.0 && pyenv global 3.11.0"
+    echo "5. Vim plugins are ready! Use :PluginInstall in vim to add more"
 fi

@@ -12,10 +12,6 @@ Plugin 'VundleVim/Vundle.vim'
 
 Plugin 'flazz/vim-colorschemes'
 
-"Plugin 'Valloric/YouCompleteMe'
-
-"Plugin 'ctrlpvim/ctrlp.vim'
-
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
 filetype plugin indent on    " required
@@ -77,8 +73,6 @@ nnoremap <leader><leader> <c-^>
 "switch between open windows with ',w'
 nnoremap <leader>w <c-w><c-w>
 
-"cntl-p
-let g:ctrlp_map = ',t'
 
 function! s:LoadSrcFiles()
     highlight OverLength ctermbg=red ctermfg=white guibg=#592929
