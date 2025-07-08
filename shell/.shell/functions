@@ -1,0 +1,115 @@
+# Navigation & File Operations
+mkcd() {
+    mkdir -p "$1" && cd "$1"
+}
+
+# Universal archive extraction
+extract() {
+    if [ -f "$1" ]; then
+        case "$1" in
+            *.tar.bz2)   tar xjf "$1"     ;;
+            *.tar.gz)    tar xzf "$1"     ;;
+            *.bz2)       bunzip2 "$1"     ;;
+            *.rar)       unrar x "$1"     ;;
+            *.gz)        gunzip "$1"      ;;
+            *.tar)       tar xf "$1"      ;;
+            *.tbz2)      tar xjf "$1"     ;;
+            *.tgz)       tar xzf "$1"     ;;
+            *.zip)       unzip "$1"       ;;
+            *.Z)         uncompress "$1"  ;;
+            *.7z)        7z x "$1"        ;;
+            *.xz)        unxz "$1"        ;;
+            *.exe)       cabextract "$1"  ;;
+            *)           echo "'$1' cannot be extracted via extract()" ;;
+        esac
+    else
+        echo "'$1' is not a valid file"
+    fi
+}
+
+# Navigate up directories by count
+up() {
+    local d=""
+    local limit="$1"
+    if [ -z "$limit" ] || [ "$limit" -le 0 ]; then
+        limit=1
+    fi
+    for ((i=1; i<=limit; i++)); do
+        d="../$d"
+    done
+    cd "$d"
+}
+
+# Kill process by port
+killport() {
+    local port="$1"
+    if [[ -z "$port" ]]; then
+        echo "Usage: killport <port>"
+        return 1
+    fi
+    local pid=$(lsof -ti:$port)
+    if [[ -n "$pid" ]]; then
+        kill -9 $pid
+        echo "Killed process $pid on port $port"
+    else
+        echo "No process found on port $port"
+    fi
+}
+
+# Quick HTTP server
+serve() {
+    local port="${1:-8000}"
+    if command -v python3 &> /dev/null; then
+        python3 -m http.server "$port"
+    elif command -v python &> /dev/null; then
+        python -m SimpleHTTPServer "$port"
+    else
+        echo "Python not found"
+    fi
+}
+
+# Better alternatives if available
+if command -v eza &> /dev/null; then
+    alias ls='eza'
+    alias ll='eza -l'
+    alias la='eza -la'
+    alias lt='eza --tree'
+else
+    alias ll='ls -l'
+    alias la='ls -la'
+fi
+
+if command -v bat &> /dev/null; then
+    alias cat='bat'
+fi
+
+# Git utilities (requires fzf)
+fzf_git_add() {
+    if command -v fzf &> /dev/null; then
+        local selections=$(git ls-files -m -o --exclude-standard | \
+            fzf --ansi \
+              --preview 'if (git ls-files --error-unmatch {1} &>/dev/null); then 
+                            git diff --color=always {1} 
+                          else 
+                            bat --color=always --line-range :500 {1} 
+                          fi')
+        if [[ -n $selections ]]; then
+            git add --verbose $selections
+        fi
+    else
+        echo "fzf not found"
+    fi
+}
+alias gadd='fzf_git_add'
+
+fzf_git_branch() {
+    if command -v fzf &> /dev/null; then
+        local branch=$(git branch --all | grep -v HEAD | fzf --ansi)
+        if [[ -n "$branch" ]]; then
+            git checkout $(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
+        fi
+    else
+        echo "fzf not found"
+    fi
+}
+alias gbr='fzf_git_branch'
