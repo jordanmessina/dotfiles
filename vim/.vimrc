@@ -55,9 +55,7 @@ syntax enable
 colorscheme 3dglasses
 
 " Fix 'redrawtime' exceeded, syntax highlighting disabled
-set redrawtime=10000
-set maxmempattern=2000
-set synmaxcol=200
+set re=0
 
 "toggle paste mode to F2
 set pastetoggle=<F2>
