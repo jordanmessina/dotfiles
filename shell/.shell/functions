@@ -83,6 +83,34 @@ if command -v bat &> /dev/null; then
     alias cat='bat'
 fi
 
+# Get IP address information
+myip() {
+    local internal_ip external_ip
+    
+    # Get internal IP address
+    if command -v ipconfig &> /dev/null; then
+        # macOS method
+        internal_ip=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "Not connected")
+    elif command -v hostname &> /dev/null; then
+        # Linux method
+        internal_ip=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "Not connected")
+    else
+        internal_ip="Unknown"
+    fi
+    
+    # Get external IP address
+    if command -v curl &> /dev/null; then
+        external_ip=$(curl -s https://ipinfo.io/ip 2>/dev/null || echo "Not connected")
+    elif command -v wget &> /dev/null; then
+        external_ip=$(wget -qO- https://ipinfo.io/ip 2>/dev/null || echo "Not connected")
+    else
+        external_ip="curl or wget required"
+    fi
+    
+    echo "Internal IP: $internal_ip"
+    echo "External IP: $external_ip"
+}
+
 # Git utilities (requires fzf)
 fzf_git_add() {
     if command -v fzf &> /dev/null; then

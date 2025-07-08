@@ -119,6 +119,7 @@ The `shell` package provides these utility functions:
 
 ### System Utilities
 - `killport <port>` - Kill process running on specified port
+- `myip` - Show internal and external IP addresses
 - `ls/ll/la` - Enhanced with `eza` if available
 - `cat` - Enhanced with `bat` if available
 
