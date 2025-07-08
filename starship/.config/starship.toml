@@ -1,0 +1,94 @@
+# Starship configuration for local development
+# https://starship.rs/config/
+
+# Timeout for commands (in milliseconds)
+command_timeout = 1000
+
+# Prompt format
+format = """
+$directory\
+$git_branch\
+$git_state\
+$git_status\
+$cmd_duration\
+$line_break\
+$character"""
+
+# Directory display
+[directory]
+truncation_length = 3
+truncate_to_repo = false
+
+# Git branch
+[git_branch]
+symbol = "🌱 "
+truncation_length = 20
+
+# Git status
+[git_status]
+conflicted = "⚔️"
+ahead = "🏎️💨"
+behind = "😰"
+diverged = "😵"
+untracked = "🤷"
+stashed = "📦"
+modified = "📝"
+staged = "✅"
+renamed = "👅"
+deleted = "🗑️"
+
+# Command duration
+[cmd_duration]
+min_time = 2000
+format = "took [$duration](bold yellow)"
+
+# Character (prompt symbol)
+[character]
+success_symbol = "[➜](bold green)"
+error_symbol = "[➜](bold red)"
+
+# Disable modules not needed for local development
+[aws]
+disabled = true
+
+[gcloud]
+disabled = true
+
+[azure]
+disabled = true
+
+[docker_context]
+disabled = true
+
+[kubernetes]
+disabled = true
+
+[terraform]
+disabled = true
+
+[vagrant]
+disabled = true
+
+[nix_shell]
+disabled = true
+
+[conda]
+disabled = true
+
+[spack]
+disabled = true
+
+[memory_usage]
+disabled = true
+
+[battery]
+disabled = true
+
+[time]
+disabled = true
+
+[hostname]
+disabled = true
+
+[username]
+disabled = true
