@@ -24,7 +24,6 @@ echo "🔧 Installing essential development tools..."
 brew install htop
 brew install neovim
 brew install nmap
-brew install nvm
 brew install pyenv
 brew install starship
 brew install tmux
@@ -41,7 +40,12 @@ brew install fd           # Better find
 brew install ripgrep      # Better grep
 
 echo "📦 Installing NVM..."
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+if [ -d "$HOME/.nvm" ] || command -v nvm &> /dev/null; then
+    echo "✅ NVM is already installed"
+else
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+    echo "✅ NVM installed successfully"
+fi
 
 echo "🔗 Installing dotfiles with Stow..."
 if [ -d "$HOME/dotfiles" ] && [ "$(pwd)" = "$HOME/dotfiles" ]; then
