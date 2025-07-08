@@ -1,6 +1,6 @@
 # Dotfiles
 
-A modern, modular dotfiles setup for macOS using GNU Stow for symlink management. This repository provides a comprehensive development environment configuration with cross-shell compatibility for both bash and zsh.
+A modern, modular dotfiles setup for macOS and Linux using GNU Stow for symlink management. This repository provides a comprehensive development environment configuration with cross-shell compatibility for both bash and zsh.
 
 ## Features
 
@@ -26,8 +26,13 @@ stow bash shell zsh tmux vim misc
 
 ## Requirements
 
-- macOS
+### macOS
 - [Homebrew](https://brew.sh/)
+- GNU Stow (installed by bootstrap script)
+
+### Linux (Ubuntu/Debian)
+- `apt-get` package manager
+- `sudo` privileges
 - GNU Stow (installed by bootstrap script)
 
 ## Repository Structure
@@ -96,8 +101,20 @@ stow tmux vim
 ## What Gets Installed
 
 ### Development Tools (via bootstrap.sh)
-- **Homebrew packages**: htop, neovim, nmap, nvm, pyenv, starship, tmux, wget, stow
+
+**macOS (via Homebrew):**
+- **Core packages**: htop, neovim, nmap, pyenv, starship, tmux, wget, stow
+- **Modern CLI tools**: fzf, eza, bat, fd, ripgrep
 - **Fonts**: JetBrains Mono Nerd Font (for Starship prompt)
+- **NVM**: Node Version Manager for Node.js versions
+
+**Linux (via apt-get):**
+- **Core packages**: htop, neovim, nmap, tmux, wget, curl, git, stow
+- **Build tools**: build-essential, various development libraries
+- **Modern CLI tools**: fzf, eza, bat, fd, ripgrep (with symlinks for compatibility)
+- **Fonts**: JetBrains Mono Nerd Font (downloaded directly)
+- **pyenv**: Installed via official installer
+- **Starship**: Installed via official installer
 - **NVM**: Node Version Manager for Node.js versions
 
 ### Shell Configuration
@@ -117,6 +134,9 @@ The `shell` package provides these utility functions:
 - `extract <file>` - Universal archive extraction
 - `serve [port]` - Quick HTTP server (default port: 8000)
 
+### Python Development
+- `mkvenv` - Create and activate Python virtual environment in `.venv`
+
 ### System Utilities
 - `killport <port>` - Kill process running on specified port
 - `myip` - Show internal and external IP addresses
@@ -134,12 +154,14 @@ The `shell` package provides these utility functions:
 
 ## Shell Compatibility
 
-This setup works with both bash and zsh:
+This setup works with both bash and zsh across platforms:
 
 - **macOS Default**: Uses zsh by default (since Catalina)
-- **Bash Support**: Full compatibility maintained
+- **Linux Default**: Usually bash, but zsh fully supported
+- **Cross-Platform**: All functions and aliases work on both macOS and Linux
 - **Shared Configuration**: Common settings in `~/.shell/`
 - **Shell-Specific**: Custom configurations in respective packages
+- **OS-Specific**: Platform-specific commands (like macOS Finder aliases) are conditionally loaded
 
 ## Customization
 
@@ -189,9 +211,16 @@ stow bash
 
 ### Missing Tools
 If functions fail due to missing tools:
+
+**macOS:**
 ```bash
-# Install recommended tools
 brew install fzf eza bat fd ripgrep
+```
+
+**Linux:**
+```bash
+# Most tools are installed by bootstrap.sh, but if needed:
+sudo apt-get install fzf bat fd-find ripgrep
 ```
 
 ### Shell Not Loading Configuration

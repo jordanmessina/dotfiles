@@ -68,6 +68,51 @@ serve() {
     fi
 }
 
+# Create and activate Python virtual environment
+mkvenv() {
+    local venv_dir=".venv"
+    local python_cmd="python3"
+    
+    # Check if python3 is available, fallback to python
+    if ! command -v python3 &> /dev/null; then
+        if command -v python &> /dev/null; then
+            python_cmd="python"
+        else
+            echo "❌ Python not found. Please install Python first."
+            return 1
+        fi
+    fi
+    
+    # Check if .venv already exists
+    if [ -d "$venv_dir" ]; then
+        echo "📁 Virtual environment already exists at $venv_dir"
+        echo "🔄 Activating existing environment..."
+    else
+        echo "🐍 Creating Python virtual environment in $venv_dir..."
+        
+        # Create the virtual environment
+        if ! $python_cmd -m venv "$venv_dir"; then
+            echo "❌ Failed to create virtual environment"
+            return 1
+        fi
+        
+        echo "✅ Virtual environment created successfully"
+    fi
+    
+    # Activate the virtual environment
+    if [ -f "$venv_dir/bin/activate" ]; then
+        echo "🚀 Activating virtual environment..."
+        source "$venv_dir/bin/activate"
+        echo "✅ Virtual environment activated!"
+        echo "📍 Location: $(pwd)/$venv_dir"
+        echo "🐍 Python: $(which python)"
+        echo "💡 To deactivate, run: deactivate"
+    else
+        echo "❌ Could not find activation script at $venv_dir/bin/activate"
+        return 1
+    fi
+}
+
 # Better alternatives if available
 if command -v eza &> /dev/null; then
     alias ls='eza'
@@ -88,14 +133,20 @@ myip() {
     local internal_ip external_ip
     
     # Get internal IP address
-    if command -v ipconfig &> /dev/null; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS method
         internal_ip=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "Not connected")
-    elif command -v hostname &> /dev/null; then
-        # Linux method
-        internal_ip=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "Not connected")
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # Linux method - try multiple approaches
+        if command -v ip &> /dev/null; then
+            internal_ip=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' || echo "Not connected")
+        elif command -v hostname &> /dev/null; then
+            internal_ip=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "Not connected")
+        else
+            internal_ip="ip or hostname command required"
+        fi
     else
-        internal_ip="Unknown"
+        internal_ip="Unknown OS"
     fi
     
     # Get external IP address
