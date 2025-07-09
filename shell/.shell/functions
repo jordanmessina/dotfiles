@@ -192,3 +192,31 @@ fzf_git_branch() {
     fi
 }
 alias gbr='fzf_git_branch'
+
+# Find and source .venv walking up directory tree
+venv_source() {
+    local current_dir="$(pwd)"
+    
+    # Walk up the directory tree looking for .venv
+    while [ "$current_dir" != "/" ]; do
+        local venv_path="$current_dir/.venv"
+        local activate_script="$venv_path/bin/activate"
+        
+        # Check if this is a valid virtual environment
+        if [ -f "$activate_script" ] && [ -f "$venv_path/pyvenv.cfg" ]; then
+            echo "🐍 Found virtual environment: $venv_path"
+            source "$activate_script"
+            echo "✅ Activated virtual environment!"
+            return 0
+        fi
+        
+        # Move up one directory
+        current_dir=$(dirname "$current_dir")
+    done
+    
+    echo "❌ No .venv found in current directory tree"
+    return 1
+}
+
+# Alias for shorter command
+alias venv='venv_source'

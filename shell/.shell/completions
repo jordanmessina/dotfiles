@@ -1,0 +1,82 @@
+# Completion functions for custom shell functions
+
+# Completion for extract function - complete with archive files
+_extract_completion() {
+    if [ -n "$ZSH_VERSION" ]; then
+        # Zsh completion
+        local -a archive_files
+        archive_files=($(find . -maxdepth 1 -type f \( -name "*.tar.bz2" -o -name "*.tar.gz" -o -name "*.bz2" -o -name "*.rar" -o -name "*.gz" -o -name "*.tar" -o -name "*.tbz2" -o -name "*.tgz" -o -name "*.zip" -o -name "*.Z" -o -name "*.7z" -o -name "*.xz" -o -name "*.exe" \) 2>/dev/null))
+        _describe 'archive files' archive_files
+    elif [ -n "$BASH_VERSION" ]; then
+        # Bash completion
+        local cur="${COMP_WORDS[COMP_CWORD]}"
+        local files=$(find . -maxdepth 1 -type f \( -name "*.tar.bz2" -o -name "*.tar.gz" -o -name "*.bz2" -o -name "*.rar" -o -name "*.gz" -o -name "*.tar" -o -name "*.tbz2" -o -name "*.tgz" -o -name "*.zip" -o -name "*.Z" -o -name "*.7z" -o -name "*.xz" -o -name "*.exe" \) 2>/dev/null | sed 's|^\./||')
+        COMPREPLY=($(compgen -W "$files" -- "$cur"))
+    fi
+}
+
+# Completion for killport function - complete with active ports
+_killport_completion() {
+    if [ -n "$ZSH_VERSION" ]; then
+        # Zsh completion
+        local -a ports
+        if command -v lsof &> /dev/null; then
+            ports=($(lsof -i -P -n | awk '/LISTEN/ {split($9, a, ":"); print a[2]}' | sort -u 2>/dev/null))
+        fi
+        _describe 'active ports' ports
+    elif [ -n "$BASH_VERSION" ]; then
+        # Bash completion
+        local cur="${COMP_WORDS[COMP_CWORD]}"
+        local ports=""
+        if command -v lsof &> /dev/null; then
+            ports=$(lsof -i -P -n | awk '/LISTEN/ {split($9, a, ":"); print a[2]}' | sort -u 2>/dev/null | tr '\n' ' ')
+        fi
+        COMPREPLY=($(compgen -W "$ports" -- "$cur"))
+    fi
+}
+
+# Completion for serve function - suggest common ports
+_serve_completion() {
+    local common_ports="8000 8080 3000 5000 9000 8888 4000"
+    if [ -n "$ZSH_VERSION" ]; then
+        # Zsh completion
+        local -a ports
+        ports=(${=common_ports})
+        _describe 'common ports' ports
+    elif [ -n "$BASH_VERSION" ]; then
+        # Bash completion
+        local cur="${COMP_WORDS[COMP_CWORD]}"
+        COMPREPLY=($(compgen -W "$common_ports" -- "$cur"))
+    fi
+}
+
+# Completion for up function - suggest numbers 1-10
+_up_completion() {
+    local numbers="1 2 3 4 5 6 7 8 9 10"
+    if [ -n "$ZSH_VERSION" ]; then
+        # Zsh completion
+        local -a nums
+        nums=(${=numbers})
+        _describe 'directory levels' nums
+    elif [ -n "$BASH_VERSION" ]; then
+        # Bash completion
+        local cur="${COMP_WORDS[COMP_CWORD]}"
+        COMPREPLY=($(compgen -W "$numbers" -- "$cur"))
+    fi
+}
+
+# Register completions based on shell type
+if [ -n "$ZSH_VERSION" ]; then
+    # Zsh completions
+    autoload -U compinit && compinit
+    compdef _extract_completion extract
+    compdef _killport_completion killport
+    compdef _serve_completion serve
+    compdef _up_completion up
+elif [ -n "$BASH_VERSION" ]; then
+    # Bash completions
+    complete -F _extract_completion extract
+    complete -F _killport_completion killport
+    complete -F _serve_completion serve
+    complete -F _up_completion up
+fi
