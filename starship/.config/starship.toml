@@ -6,6 +6,7 @@ command_timeout = 1000
 
 # Prompt format
 format = """
+$python\
 $directory\
 $git_branch\
 $git_state\
@@ -74,6 +75,11 @@ disabled = true
 
 [conda]
 disabled = true
+
+# Python virtual environment
+[python]
+symbol = "🐍 "
+format = "[$symbol$virtualenv]($style) "
 
 [spack]
 disabled = true
