@@ -38,7 +38,7 @@ install_macos_packages() {
 
     echo "🔧 Installing essential development tools..."
     brew install htop
-    brew install neovim
+    brew install vim
     brew install nmap
     brew install pyenv
     brew install starship
@@ -54,6 +54,9 @@ install_macos_packages() {
     brew install bat          # Better cat
     brew install fd           # Better find
     brew install ripgrep      # Better grep
+    
+    echo "🐍 Installing pipx for Python package management..."
+    brew install pipx
 }
 
 # Function to install packages on Linux
@@ -67,7 +70,7 @@ install_linux_packages() {
     echo "🔧 Installing essential development tools..."
     sudo apt-get install -y \
         htop \
-        neovim \
+        vim \
         nmap \
         tmux \
         wget \
@@ -127,6 +130,9 @@ install_linux_packages() {
 
     # Install ripgrep (better grep)
     sudo apt-get install -y ripgrep
+    
+    echo "🐍 Installing pipx for Python package management..."
+    sudo apt-get install -y pipx
 
     echo "🎨 Installing Nerd Font (JetBrains Mono)..."
     # Download and install JetBrains Mono Nerd Font
@@ -182,6 +188,32 @@ if [ -d "$HOME/.vim/bundle/Vundle.vim" ]; then
 else
     git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
     echo "✅ Vundle installed successfully"
+fi
+
+echo "🐍 Installing Python development tools via pipx..."
+if command -v pipx &> /dev/null; then
+    # Ensure pipx path is available
+    pipx ensurepath
+    
+    # Install black (code formatter)
+    if ! pipx list | grep -q "black"; then
+        echo "Installing black (Python code formatter)..."
+        pipx install black
+        echo "✅ black installed successfully"
+    else
+        echo "✅ black is already installed"
+    fi
+    
+    # Install flake8 (linter)
+    if ! pipx list | grep -q "flake8"; then
+        echo "Installing flake8 (Python linter)..."
+        pipx install flake8
+        echo "✅ flake8 installed successfully"
+    else
+        echo "✅ flake8 is already installed"
+    fi
+else
+    echo "⚠️  pipx not found, skipping Python tool installation"
 fi
 
 echo "🔗 Installing dotfiles with Stow..."
@@ -242,11 +274,13 @@ if [[ "$OS" == "macos" ]]; then
     echo "2. Configure Starship: https://starship.rs/config/"
     echo "3. Install Node.js: nvm install --lts"
     echo "4. Install Python: pyenv install 3.11.0 && pyenv global 3.11.0"
-    echo "5. Vim plugins are ready! Use :PluginInstall in vim to add more"
+    echo "5. Python tools available: black (formatter), flake8 (linter)"
+    echo "6. Vim plugins are ready! Use :PluginInstall in vim to add more"
 elif [[ "$OS" == "linux" ]]; then
     echo "1. Restart your terminal or run: source ~/.zshrc"
     echo "2. Configure Starship: https://starship.rs/config/"
     echo "3. Install Node.js: nvm install --lts"
     echo "4. Install Python: pyenv install 3.11.0 && pyenv global 3.11.0"
-    echo "5. Vim plugins are ready! Use :PluginInstall in vim to add more"
+    echo "5. Python tools available: black (formatter), flake8 (linter)"
+    echo "6. Vim plugins are ready! Use :PluginInstall in vim to add more"
 fi

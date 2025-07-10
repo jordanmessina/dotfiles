@@ -85,9 +85,14 @@ function! s:LoadSrcFiles()
 " For source code files, use some special settings
 autocmd FileType python, call s:LoadSrcFiles()
 
-"pep8 and pyflakes check
-au BufWritePost *.py !pep8 %
-au BufWritePost *.py !pyflakes %
+" Python development tools - black formatter and flake8 linter
+augroup python_tools
+    autocmd!
+    " Auto-format Python files with black on save
+    autocmd BufWritePost *.py silent! !black %
+    " Run flake8 linting on save (only show errors, not warnings)
+    autocmd BufWritePost *.py silent! !flake8 --select=E,F %
+augroup END
 
 "breaking the bad habbit of using the cursor
 noremap <Up> <NOP>
