@@ -49,6 +49,9 @@ set nobackup
 set nowritebackup
 set noswapfile
 
+" Auto-reload files when changed externally
+set autoread
+
 
 "set colorscheme
 syntax enable
@@ -85,13 +88,11 @@ function! s:LoadSrcFiles()
 " For source code files, use some special settings
 autocmd FileType python, call s:LoadSrcFiles()
 
-" Python development tools - black formatter and flake8 linter
+" Python development tools - black formatter
 augroup python_tools
     autocmd!
     " Auto-format Python files with black on save
-    autocmd BufWritePost *.py silent! !black %
-    " Run flake8 linting on save (only show errors, not warnings)
-    autocmd BufWritePost *.py silent! !flake8 --select=E,F %
+    autocmd BufWritePost *.py silent execute '!black %' | redraw! | edit!
 augroup END
 
 "breaking the bad habbit of using the cursor
