@@ -97,7 +97,7 @@ disabled = true
 # Hostname - shows when in SSH session or always if configured
 [hostname]
 ssh_only = true
-format = "(🖥️  [$hostname](bold blue)) "
+format = "\\(🖥️  [$hostname](bold blue)\\) "
 
 [username]
 disabled = true
