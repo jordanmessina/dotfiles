@@ -6,6 +6,7 @@ command_timeout = 1000
 
 # Prompt format
 format = """
+$hostname\
 $python\
 $directory\
 $git_branch\
@@ -93,8 +94,10 @@ disabled = true
 [time]
 disabled = true
 
+# Hostname - shows when in SSH session or always if configured
 [hostname]
-disabled = true
+ssh_only = true
+format = "(🖥️  [$hostname](bold blue)) "
 
 [username]
 disabled = true
