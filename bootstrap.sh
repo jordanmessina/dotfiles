@@ -170,6 +170,8 @@ install_linux_packages() {
 # Install packages based on OS
 if [[ "$OS" == "macos" ]]; then
     install_macos_packages
+    # Apply macOS-specific system defaults
+    ./macos/defaults.sh
 elif [[ "$OS" == "linux" ]]; then
     install_linux_packages
 fi

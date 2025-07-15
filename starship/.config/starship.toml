@@ -80,7 +80,7 @@ disabled = true
 # Python virtual environment
 [python]
 symbol = "🐍 "
-format = "[$symbol$virtualenv]($style) "
+format = "\\([$symbol$virtualenv]($style)\\) "
 
 [spack]
 disabled = true
