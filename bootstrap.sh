@@ -44,6 +44,7 @@ install_macos_packages() {
     brew install starship
     brew install tmux
     brew install wget
+    brew install tree
 
     echo "🔗 Installing GNU Stow for dotfiles management..."
     brew install stow
@@ -77,6 +78,7 @@ install_linux_packages() {
         curl \
         git \
         unzip \
+        tree \
         fontconfig \
         build-essential \
         libssl-dev \
