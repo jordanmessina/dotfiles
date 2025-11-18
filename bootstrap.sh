@@ -99,9 +99,16 @@ install_linux_packages() {
 
     echo "✨ Installing modern CLI tools..."
     # Install fzf
-    if ! command -v fzf &> /dev/null; then
+    if [ ! -d "$HOME/.fzf" ]; then
         git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
         ~/.fzf/install --all
+        echo "✅ fzf installed successfully"
+    elif ! command -v fzf &> /dev/null; then
+        echo "fzf directory exists, running installer..."
+        ~/.fzf/install --all
+        echo "✅ fzf configured successfully"
+    else
+        echo "✅ fzf is already installed"
     fi
 
     # Install eza (better ls)
