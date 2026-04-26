@@ -52,6 +52,7 @@ install_macos_packages() {
     echo "🔧 Installing essential development tools..."
     brew install htop
     brew install vim
+    brew install neovim
     brew install nmap
     brew install pyenv
     brew install starship
@@ -68,9 +69,89 @@ install_macos_packages() {
     brew install bat          # Better cat
     brew install fd           # Better find
     brew install ripgrep      # Better grep
+    brew install lazygit      # Git TUI used by LazyVim
+    brew install tree-sitter  # Parser generator used by LazyVim
     
     echo "🐍 Installing pipx for Python package management..."
     brew install pipx
+}
+
+# Function to install tree-sitter CLI on Linux
+install_linux_tree_sitter() {
+    local tree_sitter_version="v0.25.10"
+
+    if command -v tree-sitter &> /dev/null; then
+        echo "✅ tree-sitter is already installed"
+        return 0
+    fi
+
+    echo "🌳 Installing tree-sitter CLI for LazyVim..."
+    local asset_arch=""
+    case "$(uname -m)" in
+        x86_64|amd64)
+            asset_arch="x64"
+            ;;
+        aarch64|arm64)
+            asset_arch="arm64"
+            ;;
+        *)
+            echo "❌ Unsupported architecture for tree-sitter release: $(uname -m)"
+            return 1
+            ;;
+    esac
+
+    local tmp_dir
+    tmp_dir="$(mktemp -d)"
+    mkdir -p "$HOME/.local/bin"
+    curl -L "https://github.com/tree-sitter/tree-sitter/releases/download/${tree_sitter_version}/tree-sitter-linux-${asset_arch}.gz" -o "$tmp_dir/tree-sitter.gz"
+    gunzip -c "$tmp_dir/tree-sitter.gz" > "$HOME/.local/bin/tree-sitter"
+    chmod +x "$HOME/.local/bin/tree-sitter"
+    rm -rf "$tmp_dir"
+    echo "✅ tree-sitter installed successfully"
+}
+
+# Function to install a recent Neovim release on Linux
+install_linux_neovim() {
+    local required_version="0.11.2"
+    local current_version=""
+
+    if command -v nvim &> /dev/null; then
+        local version_line
+        version_line="$(nvim --version | head -n 1)"
+        current_version="${version_line#NVIM v}"
+        current_version="${current_version%% *}"
+    fi
+
+    if [ -n "$current_version" ] && [ "$(printf '%s\n' "$required_version" "$current_version" | sort -V | head -n 1)" = "$required_version" ]; then
+        echo "✅ Neovim $current_version is already installed"
+        return 0
+    fi
+
+    echo "📝 Installing Neovim >= $required_version for LazyVim..."
+    local asset_arch=""
+    case "$(uname -m)" in
+        x86_64|amd64)
+            asset_arch="x86_64"
+            ;;
+        aarch64|arm64)
+            asset_arch="arm64"
+            ;;
+        *)
+            echo "❌ Unsupported architecture for Neovim release: $(uname -m)"
+            return 1
+            ;;
+    esac
+
+    local tmp_dir
+    tmp_dir="$(mktemp -d)"
+    mkdir -p "$HOME/.local/bin"
+    curl -L "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${asset_arch}.tar.gz" -o "$tmp_dir/nvim.tar.gz"
+    tar -xzf "$tmp_dir/nvim.tar.gz" -C "$tmp_dir"
+    rm -rf "$HOME/.local/nvim"
+    mv "$tmp_dir/nvim-linux-${asset_arch}" "$HOME/.local/nvim"
+    ln -sf "$HOME/.local/nvim/bin/nvim" "$HOME/.local/bin/nvim"
+    rm -rf "$tmp_dir"
+    echo "✅ Neovim installed successfully"
 }
 
 # Function to install packages on Linux
@@ -154,6 +235,9 @@ install_linux_packages() {
     
     echo "🐍 Installing pipx for Python package management..."
     "${apt_install[@]}" pipx
+
+    install_linux_neovim
+    install_linux_tree_sitter
 
     echo "🎨 Installing Nerd Font (JetBrains Mono)..."
     # Download and install JetBrains Mono Nerd Font
@@ -266,11 +350,12 @@ conflicts=(
     "$HOME/.vimrc"
     "$HOME/.hushlogin"
     "$HOME/.config/starship.toml"
+    "$HOME/.config/nvim"
 )
 
 # Move conflicting files to backup
 for file in "${conflicts[@]}"; do
-    if [ -f "$file" ] && [ ! -L "$file" ]; then
+    if [ -e "$file" ] && [ ! -L "$file" ]; then
         echo "  Backing up $(basename "$file")"
         mv "$file" "$backup_dir/"
     fi
@@ -283,7 +368,7 @@ mkdir -p "$HOME/.config"
 echo "🔗 Stowing dotfiles packages..."
 (
     cd "$DOTFILES_DIR"
-    stow --target="$HOME" bash shell zsh tmux vim misc starship
+    stow --target="$HOME" bash shell zsh tmux vim nvim misc starship
 )
 echo "✅ Dotfiles installed successfully!"
 

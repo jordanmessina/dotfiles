@@ -47,11 +47,14 @@ dotfiles/
 │   └── .shell/
 │       ├── aliases      # Common aliases and shortcuts
 │       ├── exports      # Environment variables and tool setup
-│       └── functions    # Utility functions
+│       ├── functions    # Utility functions
+│       └── keybindings  # Interactive shell keybindings
 ├── tmux/                # Terminal multiplexer
 │   └── .tmux.conf       # Tmux configuration
 ├── vim/                 # Vim editor
 │   └── .vimrc           # Vim configuration with plugins
+├── nvim/                # Neovim editor
+│   └── .config/nvim/    # LazyVim starter configuration
 ├── misc/                # Miscellaneous files
 │   └── .hushlogin       # Suppress login messages
 ├── bootstrap.sh         # Automated setup script
@@ -85,6 +88,7 @@ To apply macOS system defaults during setup, run `./bootstrap.sh --macos-default
    stow shell          # Essential shared utilities
    stow zsh            # Zsh configuration
    stow tmux           # Terminal multiplexer
+   stow nvim           # Neovim LazyVim configuration
    stow starship       # Starship prompt configuration
    # Install only what you need
    ```
@@ -95,8 +99,8 @@ To apply macOS system defaults during setup, run `./bootstrap.sh --macos-default
 # Install only shell and zsh for a minimal setup
 stow shell zsh
 
-# Add tmux and vim later
-stow tmux vim
+# Add tmux, vim, and Neovim later
+stow tmux vim nvim
 ```
 
 ## What Gets Installed
@@ -104,14 +108,14 @@ stow tmux vim
 ### Development Tools (via bootstrap.sh)
 
 **macOS (via Homebrew):**
-- **Core packages**: htop, vim, nmap, pyenv, starship, tmux, wget, tree, stow
-- **Modern CLI tools**: fzf, eza, bat, fd, ripgrep
+- **Core packages**: htop, vim, neovim, nmap, pyenv, starship, tmux, wget, tree, stow
+- **Modern CLI tools**: fzf, eza, bat, fd, ripgrep, lazygit, tree-sitter
 - **Fonts**: JetBrains Mono Nerd Font (for Starship prompt)
 - **NVM**: Node Version Manager for Node.js versions
 - **OpenCode**: Installed via official installer
 
 **Linux (via apt-get):**
-- **Core packages**: htop, vim, nmap, tmux, wget, curl, git, tree, stow
+- **Core packages**: htop, vim, Neovim >= 0.11.2, nmap, tmux, wget, curl, git, tree, stow
 - **Build tools**: build-essential, various development libraries
 - **Modern CLI tools**: fzf, eza, bat, fd, ripgrep (with symlinks for compatibility)
 - **Fonts**: JetBrains Mono Nerd Font (downloaded directly)
@@ -119,6 +123,7 @@ stow tmux vim
 - **Starship**: Installed via official installer
 - **NVM**: Node Version Manager for Node.js versions
 - **OpenCode**: Installed via official installer
+- **tree-sitter**: Installed via official release binary for LazyVim
 
 ### Shell Configuration
 - **Starship**: Modern, fast prompt with git integration
@@ -127,6 +132,11 @@ stow tmux vim
 - **OpenCode**: CLI path setup
 - **Aliases**: Common shortcuts for navigation and git
 - **Functions**: Utility functions for development
+
+### Neovim Configuration
+- **LazyVim**: Starter configuration is linked to `~/.config/nvim`
+- **First launch**: Run `nvim` to let LazyVim bootstrap `lazy.nvim` and install plugins
+- **Health check**: Run `:LazyHealth` inside Neovim after first launch
 
 ## Available Functions
 
