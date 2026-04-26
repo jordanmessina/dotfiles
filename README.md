@@ -14,15 +14,14 @@ A modern, modular dotfiles setup for macOS and Linux using GNU Stow for symlink 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/dotfiles.git ~/dotfiles
+git clone git@github.com:jordanmessina/dotfiles.git ~/dotfiles
 cd ~/dotfiles
 
-# Run the bootstrap script to install dependencies
+# Install dependencies and link dotfiles
 ./bootstrap.sh
-
-# Install dotfiles using stow
-stow bash shell zsh tmux vim misc
 ```
+
+On macOS, use `./bootstrap.sh --macos-defaults` instead if you also want system defaults applied.
 
 ## Requirements
 
@@ -65,11 +64,12 @@ dotfiles/
 
 ```bash
 # Clone and setup everything
-git clone https://github.com/yourusername/dotfiles.git ~/dotfiles
+git clone git@github.com:jordanmessina/dotfiles.git ~/dotfiles
 cd ~/dotfiles
 ./bootstrap.sh
-stow bash shell zsh tmux vim misc
 ```
+
+To apply macOS system defaults during setup, run `./bootstrap.sh --macos-defaults` instead.
 
 ### Option 2: Manual Installation
 
@@ -85,6 +85,7 @@ stow bash shell zsh tmux vim misc
    stow shell          # Essential shared utilities
    stow zsh            # Zsh configuration
    stow tmux           # Terminal multiplexer
+   stow starship       # Starship prompt configuration
    # Install only what you need
    ```
 
@@ -103,24 +104,27 @@ stow tmux vim
 ### Development Tools (via bootstrap.sh)
 
 **macOS (via Homebrew):**
-- **Core packages**: htop, neovim, nmap, pyenv, starship, tmux, wget, stow
+- **Core packages**: htop, vim, nmap, pyenv, starship, tmux, wget, tree, stow
 - **Modern CLI tools**: fzf, eza, bat, fd, ripgrep
 - **Fonts**: JetBrains Mono Nerd Font (for Starship prompt)
 - **NVM**: Node Version Manager for Node.js versions
+- **OpenCode**: Installed via official installer
 
 **Linux (via apt-get):**
-- **Core packages**: htop, neovim, nmap, tmux, wget, curl, git, stow
+- **Core packages**: htop, vim, nmap, tmux, wget, curl, git, tree, stow
 - **Build tools**: build-essential, various development libraries
 - **Modern CLI tools**: fzf, eza, bat, fd, ripgrep (with symlinks for compatibility)
 - **Fonts**: JetBrains Mono Nerd Font (downloaded directly)
 - **pyenv**: Installed via official installer
 - **Starship**: Installed via official installer
 - **NVM**: Node Version Manager for Node.js versions
+- **OpenCode**: Installed via official installer
 
 ### Shell Configuration
 - **Starship**: Modern, fast prompt with git integration
 - **pyenv**: Python version management
 - **NVM**: Node.js version management
+- **OpenCode**: CLI path setup
 - **Aliases**: Common shortcuts for navigation and git
 - **Functions**: Utility functions for development
 

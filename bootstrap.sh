@@ -2,6 +2,22 @@
 
 set -e  # Exit on error
 
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APPLY_MACOS_DEFAULTS=0
+
+for arg in "$@"; do
+    case "$arg" in
+        --macos-defaults)
+            APPLY_MACOS_DEFAULTS=1
+            ;;
+        *)
+            echo "❌ Unknown option: $arg"
+            echo "Usage: ./bootstrap.sh [--macos-defaults]"
+            exit 1
+            ;;
+    esac
+done
+
 echo "🚀 Setting up dotfiles environment..."
 
 # Detect operating system
@@ -29,9 +45,6 @@ install_macos_packages() {
 
     echo "📦 Updating Homebrew..."
     brew update
-
-    echo "⬆️ Upgrading installed packages..."
-    brew upgrade
 
     echo "🎨 Installing Nerd Font (required for Starship)..."
     brew install --cask font-jetbrains-mono-nerd-font
@@ -62,14 +75,13 @@ install_macos_packages() {
 
 # Function to install packages on Linux
 install_linux_packages() {
+    local apt_install=(sudo DEBIAN_FRONTEND=noninteractive apt-get install -y)
+
     echo "📦 Updating package lists..."
     sudo apt-get update
 
-    echo "⬆️ Upgrading installed packages..."
-    sudo apt-get upgrade -y
-
     echo "🔧 Installing essential development tools..."
-    sudo apt-get install -y \
+    "${apt_install[@]}" \
         htop \
         vim \
         nmap \
@@ -95,7 +107,7 @@ install_linux_packages() {
         liblzma-dev
 
     echo "🔗 Installing GNU Stow for dotfiles management..."
-    sudo apt-get install -y stow
+    "${apt_install[@]}" stow
 
     echo "✨ Installing modern CLI tools..."
     # Install fzf
@@ -113,16 +125,16 @@ install_linux_packages() {
 
     # Install eza (better ls)
     if ! command -v eza &> /dev/null; then
-        sudo apt-get install -y gpg
+        "${apt_install[@]}" gpg
         wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | sudo gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
         echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list
         sudo chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list
         sudo apt-get update
-        sudo apt-get install -y eza
+        "${apt_install[@]}" eza
     fi
 
     # Install bat (better cat)
-    sudo apt-get install -y bat
+    "${apt_install[@]}" bat
     # Create symlink for bat if it's installed as batcat
     if command -v batcat &> /dev/null && ! command -v bat &> /dev/null; then
         mkdir -p ~/.local/bin
@@ -130,7 +142,7 @@ install_linux_packages() {
     fi
 
     # Install fd (better find)
-    sudo apt-get install -y fd-find
+    "${apt_install[@]}" fd-find
     # Create symlink for fd if it's installed as fdfind
     if command -v fdfind &> /dev/null && ! command -v fd &> /dev/null; then
         mkdir -p ~/.local/bin
@@ -138,10 +150,10 @@ install_linux_packages() {
     fi
 
     # Install ripgrep (better grep)
-    sudo apt-get install -y ripgrep
+    "${apt_install[@]}" ripgrep
     
     echo "🐍 Installing pipx for Python package management..."
-    sudo apt-get install -y pipx
+    "${apt_install[@]}" pipx
 
     echo "🎨 Installing Nerd Font (JetBrains Mono)..."
     # Download and install JetBrains Mono Nerd Font
@@ -169,7 +181,8 @@ install_linux_packages() {
 
     echo "🌟 Installing Starship..."
     if ! command -v starship &> /dev/null; then
-        curl -sS https://starship.rs/install.sh | sh -s -- --yes
+        mkdir -p "$HOME/.local/bin"
+        curl -sS https://starship.rs/install.sh | sh -s -- --yes --bin-dir "$HOME/.local/bin"
         echo "✅ Starship installed successfully"
     else
         echo "✅ Starship is already installed"
@@ -179,8 +192,11 @@ install_linux_packages() {
 # Install packages based on OS
 if [[ "$OS" == "macos" ]]; then
     install_macos_packages
-    # Apply macOS-specific system defaults
-    ./macos/defaults.sh
+    if [[ "$APPLY_MACOS_DEFAULTS" -eq 1 ]]; then
+        "$DOTFILES_DIR/macos/defaults.sh"
+    else
+        echo "⚙️ Skipping macOS defaults. Run ./bootstrap.sh --macos-defaults to apply them."
+    fi
 elif [[ "$OS" == "linux" ]]; then
     install_linux_packages
 fi
@@ -191,6 +207,14 @@ if [ -d "$HOME/.nvm" ] || command -v nvm &> /dev/null; then
 else
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
     echo "✅ NVM installed successfully"
+fi
+
+echo "📦 Installing OpenCode..."
+if command -v opencode &> /dev/null || [ -x "$HOME/.opencode/bin/opencode" ]; then
+    echo "✅ OpenCode is already installed"
+else
+    curl -fsSL https://opencode.ai/install | bash
+    echo "✅ OpenCode installed successfully"
 fi
 
 echo "📦 Installing Vundle for Vim plugin management..."
@@ -228,53 +252,51 @@ else
 fi
 
 echo "🔗 Installing dotfiles with Stow..."
-if [ -d "$HOME/dotfiles" ] && [ "$(pwd)" = "$HOME/dotfiles" ]; then
-    # Backup existing dotfiles that might conflict
-    echo "📋 Backing up existing dotfiles..."
-    backup_dir="$HOME/dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
-    mkdir -p "$backup_dir"
-    
-    # List of files that might conflict
-    conflicts=(
-        "$HOME/.bashrc"
-        "$HOME/.bash_profile" 
-        "$HOME/.zshrc"
-        "$HOME/.tmux.conf"
-        "$HOME/.vimrc"
-        "$HOME/.hushlogin"
-        "$HOME/.config/starship.toml"
-    )
-    
-    # Move conflicting files to backup
-    for file in "${conflicts[@]}"; do
-        if [ -f "$file" ] && [ ! -L "$file" ]; then
-            echo "  Backing up $(basename "$file")"
-            mv "$file" "$backup_dir/"
-        fi
-    done
-    
-    # Create .config directory if it doesn't exist
-    mkdir -p "$HOME/.config"
-    
-    # Now stow the packages
-    echo "🔗 Stowing dotfiles packages..."
-    stow bash shell zsh tmux vim misc starship
-    echo "✅ Dotfiles installed successfully!"
-    
-    # Install vim plugins
-    echo "📦 Installing Vim plugins..."
-    vim +PluginInstall +qall
-    echo "✅ Vim plugins installed successfully!"
-    
-    if [ -d "$backup_dir" ] && [ "$(ls -A "$backup_dir")" ]; then
-        echo "📁 Original files backed up to: $backup_dir"
-    else
-        # Remove empty backup directory
-        rmdir "$backup_dir" 2>/dev/null || true
+# Backup existing dotfiles that might conflict
+echo "📋 Backing up existing dotfiles..."
+backup_dir="$HOME/dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$backup_dir"
+
+# List of files that might conflict
+conflicts=(
+    "$HOME/.bashrc"
+    "$HOME/.bash_profile"
+    "$HOME/.zshrc"
+    "$HOME/.tmux.conf"
+    "$HOME/.vimrc"
+    "$HOME/.hushlogin"
+    "$HOME/.config/starship.toml"
+)
+
+# Move conflicting files to backup
+for file in "${conflicts[@]}"; do
+    if [ -f "$file" ] && [ ! -L "$file" ]; then
+        echo "  Backing up $(basename "$file")"
+        mv "$file" "$backup_dir/"
     fi
+done
+
+# Create .config directory if it doesn't exist
+mkdir -p "$HOME/.config"
+
+# Now stow the packages
+echo "🔗 Stowing dotfiles packages..."
+(
+    cd "$DOTFILES_DIR"
+    stow --target="$HOME" bash shell zsh tmux vim misc starship
+)
+echo "✅ Dotfiles installed successfully!"
+
+# Install vim plugins
+echo "📦 Installing Vim plugins..."
+vim -es -u "$HOME/.vimrc" +PluginInstall +qall
+echo "✅ Vim plugins installed successfully!"
+
+if [ -d "$backup_dir" ] && [ "$(ls -A "$backup_dir")" ]; then
+    echo "📁 Original files backed up to: $backup_dir"
 else
-    echo "⚠️  Please run this script from your dotfiles directory (~/dotfiles)"
-    echo "   After cloning, run: cd ~/dotfiles && ./bootstrap.sh"
+    # Remove empty backup directory
+    rmdir "$backup_dir" 2>/dev/null || true
 fi
 
 echo "🎉 Setup complete!"

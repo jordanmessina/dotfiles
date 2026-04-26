@@ -55,7 +55,7 @@ set autoread
 
 "set colorscheme
 syntax enable
-colorscheme 3dglasses
+silent! colorscheme 3dglasses
 
 " Fix 'redrawtime' exceeded, syntax highlighting disabled
 set re=0
@@ -86,13 +86,13 @@ function! s:LoadSrcFiles()
  endfunction
 
 " For source code files, use some special settings
-autocmd FileType python, call s:LoadSrcFiles()
+autocmd FileType python call s:LoadSrcFiles()
 
 " Python development tools - black formatter
 augroup python_tools
     autocmd!
     " Auto-format Python files with black on save
-    autocmd BufWritePost *.py silent execute '!black %' | redraw! | edit!
+    autocmd BufWritePost *.py if executable('black') | silent execute '!black ' . shellescape(expand('%:p')) | redraw! | edit! | endif
 augroup END
 
 "breaking the bad habbit of using the cursor
