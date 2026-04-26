@@ -1,0 +1,13 @@
+# Interactive shell keybindings
+
+if [[ $- == *i* ]]; then
+    if [ -n "$ZSH_VERSION" ]; then
+        bindkey -e
+        bindkey '^A' beginning-of-line
+        bindkey '^E' end-of-line
+    elif [ -n "$BASH_VERSION" ]; then
+        set -o emacs
+        bind '"\C-a": beginning-of-line'
+        bind '"\C-e": end-of-line'
+    fi
+fi
