@@ -57,6 +57,8 @@ dotfiles/
 │   └── .config/nvim/    # LazyVim starter configuration
 ├── misc/                # Miscellaneous files
 │   └── .hushlogin       # Suppress login messages
+├── pi/                  # Pi global extensions only
+│   └── .pi/agent/extensions/
 ├── bootstrap.sh         # Automated setup script
 └── .stow-local-ignore   # Files to exclude from stowing
 ```
@@ -90,6 +92,7 @@ To apply macOS system defaults during setup, run `./bootstrap.sh --macos-default
    stow tmux           # Terminal multiplexer
    stow nvim           # Neovim LazyVim configuration
    stow starship       # Starship prompt configuration
+   stow pi             # Pi global extensions only
    # Install only what you need
    ```
 

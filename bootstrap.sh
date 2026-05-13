@@ -368,7 +368,7 @@ mkdir -p "$HOME/.config"
 echo "🔗 Stowing dotfiles packages..."
 (
     cd "$DOTFILES_DIR"
-    stow --target="$HOME" bash shell zsh tmux vim nvim misc starship
+    stow --target="$HOME" bash shell zsh tmux vim nvim misc starship pi
 )
 echo "✅ Dotfiles installed successfully!"
 
