@@ -1,34 +1,17 @@
-version: '3.8'
-
 services:
   ubuntu-test:
     build: .
-    container_name: dotfiles-ubuntu-test
+    image: dotfiles-ubuntu-test
     tty: true
     stdin_open: true
-    volumes:
-      - .:/home/testuser/dotfiles
     working_dir: /home/testuser/dotfiles
     command: /bin/bash
-    
-  ubuntu-clean:
-    image: ubuntu:22.04
-    container_name: dotfiles-ubuntu-clean
-    tty: true
-    stdin_open: true
-    volumes:
-      - .:/home/testuser/dotfiles
+
+  ubuntu-bootstrap-test:
+    build: .
+    image: dotfiles-ubuntu-test
     working_dir: /home/testuser/dotfiles
     environment:
-      - DEBIAN_FRONTEND=noninteractive
-    command: /bin/bash -c "
-      apt-get update && 
-      apt-get install -y sudo curl wget git && 
-      useradd -m -s /bin/bash testuser && 
-      echo 'testuser:testuser' | chpasswd && 
-      usermod -aG sudo testuser && 
-      echo 'testuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers &&
-      chown -R testuser:testuser /home/testuser/dotfiles &&
-      chmod +x /home/testuser/dotfiles/bootstrap.sh &&
-      su - testuser -c 'cd /home/testuser/dotfiles && /bin/bash'
-      "
+      TERM: dumb
+      DEBIAN_FRONTEND: noninteractive
+    command: ["/bin/bash", "-lc", "./bootstrap.sh && ./scripts/verify-bootstrap.sh && ./scripts/test.sh"]

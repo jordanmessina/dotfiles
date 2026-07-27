@@ -1,6 +1,10 @@
 # Navigation & File Operations
 mkcd() {
-    mkdir -p "$1" && cd "$1"
+    if [ -z "${1-}" ]; then
+        echo "Usage: mkcd <directory>"
+        return 1
+    fi
+    mkdir -p "$1" && cd "$1" || return
 }
 
 # Universal archive extraction
@@ -37,7 +41,7 @@ up() {
     for ((i=1; i<=limit; i++)); do
         d="../$d"
     done
-    cd "$d"
+    cd "$d" || return
 }
 
 # Kill process by port
@@ -47,10 +51,16 @@ killport() {
         echo "Usage: killport <port>"
         return 1
     fi
-    local pid=$(lsof -ti:$port)
-    if [[ -n "$pid" ]]; then
-        kill -9 $pid
-        echo "Killed process $pid on port $port"
+    local pids=""
+    local pid=""
+    pids=$(lsof -ti:"$port")
+    if [[ -n "$pids" ]]; then
+        while IFS= read -r pid; do
+            [ -n "$pid" ] && kill -9 "$pid"
+        done <<EOF
+$pids
+EOF
+        echo "Killed process(es) $pids on port $port"
     else
         echo "No process found on port $port"
     fi
@@ -165,15 +175,16 @@ myip() {
 # Git utilities (requires fzf)
 fzf_git_add() {
     if command -v fzf &> /dev/null; then
-        local selections=$(git ls-files -m -o --exclude-standard | \
+        local selection=""
+        selection=$(git ls-files -m -o --exclude-standard | \
             fzf --ansi \
               --preview 'if (git ls-files --error-unmatch {1} &>/dev/null); then 
                             git diff --color=always {1} 
                           else 
                             bat --color=always --line-range :500 {1} 
                           fi')
-        if [[ -n $selections ]]; then
-            git add --verbose $selections
+        if [[ -n $selection ]]; then
+            git add --verbose -- "$selection"
         fi
     else
         echo "fzf not found"
@@ -183,9 +194,12 @@ alias gadd='fzf_git_add'
 
 fzf_git_branch() {
     if command -v fzf &> /dev/null; then
-        local branch=$(git branch --all | grep -v HEAD | fzf --ansi)
+        local branch=""
+        local branch_name=""
+        branch=$(git branch --all | grep -v HEAD | fzf --ansi)
         if [[ -n "$branch" ]]; then
-            git checkout $(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
+            branch_name=$(echo "$branch" | sed "s/.* //" | sed "s#remotes/[^/]*/##")
+            git checkout "$branch_name"
         fi
     else
         echo "fzf not found"
@@ -195,7 +209,8 @@ alias gbr='fzf_git_branch'
 
 # Find and source .venv walking up directory tree
 venv_source() {
-    local current_dir="$(pwd)"
+    local current_dir=""
+    current_dir="$(pwd)"
     
     # Walk up the directory tree looking for .venv
     while [ "$current_dir" != "/" ]; do

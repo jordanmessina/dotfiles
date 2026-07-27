@@ -1,0 +1,2 @@
+# Shared shell modules are sourced dynamically by Bash and Zsh.
+disable=SC1090,SC1091

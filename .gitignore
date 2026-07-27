@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editors
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Logs and temporary output
+*.log
+*.tmp
+coverage/
+
+# Local environment files
+.env
+.env.*
+!.env.example

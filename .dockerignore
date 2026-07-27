@@ -1,6 +1,5 @@
 .git
-.gitignore
-README.md
-Dockerfile
-docker-compose.yml
-.dockerignore
+**/.DS_Store
+**/node_modules
+**/*.log
+coverage

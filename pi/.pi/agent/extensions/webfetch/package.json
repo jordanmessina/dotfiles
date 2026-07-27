@@ -2,6 +2,9 @@
   "name": "pi-webfetch-extension",
   "private": true,
   "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "0.74.0",
     "turndown": "^7.2.4",

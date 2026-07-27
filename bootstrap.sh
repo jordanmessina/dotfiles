@@ -1,404 +1,489 @@
 #!/usr/bin/env bash
 
-set -e  # Exit on error
+set -Eeuo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APPLY_MACOS_DEFAULTS=0
+SKIP_PACKAGES=0
+STOW_ONLY=0
+
+usage() {
+    cat <<'EOF'
+Usage: ./bootstrap.sh [options]
+
+Options:
+  --macos-defaults  Apply the macOS defaults in macos/defaults.sh
+  --skip-packages   Skip the Homebrew/apt package installation step
+  --stow-only       Only back up conflicts and link dotfiles
+  -h, --help        Show this help
+EOF
+}
 
 for arg in "$@"; do
     case "$arg" in
         --macos-defaults)
             APPLY_MACOS_DEFAULTS=1
             ;;
+        --skip-packages)
+            SKIP_PACKAGES=1
+            ;;
+        --stow-only)
+            STOW_ONLY=1
+            SKIP_PACKAGES=1
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
         *)
-            echo "❌ Unknown option: $arg"
-            echo "Usage: ./bootstrap.sh [--macos-defaults]"
+            echo "❌ Unknown option: $arg" >&2
+            usage >&2
             exit 1
             ;;
     esac
 done
 
+case "$(uname -s)" in
+    Darwin) OS="macos" ;;
+    Linux) OS="linux" ;;
+    *)
+        echo "❌ Unsupported operating system: $(uname -s)" >&2
+        exit 1
+        ;;
+esac
+
+export PATH="$HOME/.local/bin:$PATH"
+
 echo "🚀 Setting up dotfiles environment..."
-
-# Detect operating system
-OS=""
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    OS="linux"
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-    OS="macos"
-else
-    echo "❌ Unsupported operating system: $OSTYPE"
-    echo "This script supports macOS and Linux only."
-    exit 1
-fi
-
 echo "🖥️  Detected OS: $OS"
 
-# Function to install packages on macOS
+require_command() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "❌ Required command not found: $1" >&2
+        return 1
+    fi
+}
+
 install_macos_packages() {
-    # Check if Homebrew is installed
-    if ! command -v brew &> /dev/null; then
-        echo "❌ Homebrew not found. Please install Homebrew first:"
-        echo "   /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+    if ! command -v brew >/dev/null 2>&1; then
+        echo "❌ Homebrew not found. Install it first:" >&2
+        # shellcheck disable=SC2016
+        echo '   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"' >&2
         exit 1
     fi
 
     echo "📦 Updating Homebrew..."
     brew update
 
-    echo "🎨 Installing Nerd Font (required for Starship)..."
-    brew install --cask font-jetbrains-mono-nerd-font
-
-    echo "🔧 Installing essential development tools..."
-    brew install htop
-    brew install vim
-    brew install neovim
-    brew install nmap
-    brew install pyenv
-    brew install starship
-    brew install tmux
-    brew install wget
-    brew install tree
-
-    echo "🔗 Installing GNU Stow for dotfiles management..."
-    brew install stow
-
-    echo "✨ Installing modern CLI tools..."
-    brew install fzf          # Fuzzy finder
-    brew install eza          # Better ls
-    brew install bat          # Better cat
-    brew install fd           # Better find
-    brew install ripgrep      # Better grep
-    brew install lazygit      # Git TUI used by LazyVim
-    brew install tree-sitter  # Parser generator used by LazyVim
-    
-    echo "🐍 Installing pipx for Python package management..."
-    brew install pipx
+    echo "📦 Installing missing packages from Brewfile..."
+    # Bootstrap should converge on the declared tools without upgrading the
+    # rest of an existing Homebrew installation. Sequential jobs also avoid
+    # lock contention between related formulae such as Neovim/tree-sitter.
+    brew bundle --no-upgrade --jobs=1 --file="$DOTFILES_DIR/Brewfile"
 }
 
-# Function to install tree-sitter CLI on Linux
 install_linux_tree_sitter() {
     local tree_sitter_version="v0.25.10"
+    local asset_arch=""
+    local tmp_dir=""
 
-    if command -v tree-sitter &> /dev/null; then
+    if command -v tree-sitter >/dev/null 2>&1; then
         echo "✅ tree-sitter is already installed"
-        return 0
+        return
     fi
 
-    echo "🌳 Installing tree-sitter CLI for LazyVim..."
-    local asset_arch=""
     case "$(uname -m)" in
-        x86_64|amd64)
-            asset_arch="x64"
-            ;;
-        aarch64|arm64)
-            asset_arch="arm64"
-            ;;
+        x86_64|amd64) asset_arch="x64" ;;
+        aarch64|arm64) asset_arch="arm64" ;;
         *)
-            echo "❌ Unsupported architecture for tree-sitter release: $(uname -m)"
+            echo "❌ Unsupported architecture for tree-sitter: $(uname -m)" >&2
             return 1
             ;;
     esac
 
-    local tmp_dir
+    echo "🌳 Installing tree-sitter CLI for LazyVim..."
     tmp_dir="$(mktemp -d)"
-    mkdir -p "$HOME/.local/bin"
-    curl -L "https://github.com/tree-sitter/tree-sitter/releases/download/${tree_sitter_version}/tree-sitter-linux-${asset_arch}.gz" -o "$tmp_dir/tree-sitter.gz"
+    curl -fsSL "https://github.com/tree-sitter/tree-sitter/releases/download/${tree_sitter_version}/tree-sitter-linux-${asset_arch}.gz" -o "$tmp_dir/tree-sitter.gz"
     gunzip -c "$tmp_dir/tree-sitter.gz" > "$HOME/.local/bin/tree-sitter"
     chmod +x "$HOME/.local/bin/tree-sitter"
     rm -rf "$tmp_dir"
-    echo "✅ tree-sitter installed successfully"
 }
 
-# Function to install a recent Neovim release on Linux
+version_at_least() {
+    # Linux bootstrap has sort -V through coreutils.
+    [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n 1)" = "$1" ]
+}
+
 install_linux_neovim() {
     local required_version="0.11.2"
     local current_version=""
+    local asset_arch=""
+    local tmp_dir=""
 
-    if command -v nvim &> /dev/null; then
-        local version_line
-        version_line="$(nvim --version | head -n 1)"
-        current_version="${version_line#NVIM v}"
+    if command -v nvim >/dev/null 2>&1; then
+        current_version="$(nvim --version | head -n 1)"
+        current_version="${current_version#NVIM v}"
         current_version="${current_version%% *}"
     fi
 
-    if [ -n "$current_version" ] && [ "$(printf '%s\n' "$required_version" "$current_version" | sort -V | head -n 1)" = "$required_version" ]; then
+    if [ -n "$current_version" ] && version_at_least "$required_version" "$current_version"; then
         echo "✅ Neovim $current_version is already installed"
-        return 0
+        return
     fi
 
-    echo "📝 Installing Neovim >= $required_version for LazyVim..."
-    local asset_arch=""
     case "$(uname -m)" in
-        x86_64|amd64)
-            asset_arch="x86_64"
-            ;;
-        aarch64|arm64)
-            asset_arch="arm64"
-            ;;
+        x86_64|amd64) asset_arch="x86_64" ;;
+        aarch64|arm64) asset_arch="arm64" ;;
         *)
-            echo "❌ Unsupported architecture for Neovim release: $(uname -m)"
+            echo "❌ Unsupported architecture for Neovim: $(uname -m)" >&2
             return 1
             ;;
     esac
 
-    local tmp_dir
+    echo "📝 Installing Neovim >= $required_version for LazyVim..."
     tmp_dir="$(mktemp -d)"
-    mkdir -p "$HOME/.local/bin"
-    curl -L "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${asset_arch}.tar.gz" -o "$tmp_dir/nvim.tar.gz"
+    curl -fsSL "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-${asset_arch}.tar.gz" -o "$tmp_dir/nvim.tar.gz"
     tar -xzf "$tmp_dir/nvim.tar.gz" -C "$tmp_dir"
     rm -rf "$HOME/.local/nvim"
     mv "$tmp_dir/nvim-linux-${asset_arch}" "$HOME/.local/nvim"
-    ln -sf "$HOME/.local/nvim/bin/nvim" "$HOME/.local/bin/nvim"
+    ln -sfn "$HOME/.local/nvim/bin/nvim" "$HOME/.local/bin/nvim"
     rm -rf "$tmp_dir"
-    echo "✅ Neovim installed successfully"
 }
 
-# Function to install packages on Linux
 install_linux_packages() {
-    local apt_install=(sudo DEBIAN_FRONTEND=noninteractive apt-get install -y)
+    local apt_install=(sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y)
 
-    echo "📦 Updating package lists..."
+    echo "📦 Updating apt package lists..."
     sudo apt-get update
 
-    echo "🔧 Installing essential development tools..."
+    echo "📦 Installing Linux development packages..."
     "${apt_install[@]}" \
-        htop \
-        vim \
-        nmap \
-        tmux \
-        wget \
-        curl \
-        git \
-        unzip \
-        tree \
-        fontconfig \
-        build-essential \
-        libssl-dev \
-        zlib1g-dev \
-        libbz2-dev \
-        libreadline-dev \
-        libsqlite3-dev \
-        libncursesw5-dev \
-        xz-utils \
-        tk-dev \
-        libxml2-dev \
-        libxmlsec1-dev \
-        libffi-dev \
-        liblzma-dev
+        htop vim nmap tmux wget curl git unzip tree fontconfig \
+        build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
+        libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev \
+        libxmlsec1-dev libffi-dev liblzma-dev \
+        stow fzf bat fd-find ripgrep pipx gpg \
+        zsh lsof shellcheck xclip
 
-    echo "🔗 Installing GNU Stow for dotfiles management..."
-    "${apt_install[@]}" stow
-
-    echo "✨ Installing modern CLI tools..."
-    # Install fzf
-    if [ ! -d "$HOME/.fzf" ]; then
-        git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-        ~/.fzf/install --all
-        echo "✅ fzf installed successfully"
-    elif ! command -v fzf &> /dev/null; then
-        echo "fzf directory exists, running installer..."
-        ~/.fzf/install --all
-        echo "✅ fzf configured successfully"
-    else
-        echo "✅ fzf is already installed"
+    mkdir -p "$HOME/.local/bin"
+    if command -v batcat >/dev/null 2>&1 && ! command -v bat >/dev/null 2>&1; then
+        ln -sfn /usr/bin/batcat "$HOME/.local/bin/bat"
+    fi
+    if command -v fdfind >/dev/null 2>&1 && ! command -v fd >/dev/null 2>&1; then
+        ln -sfn /usr/bin/fdfind "$HOME/.local/bin/fd"
     fi
 
-    # Install eza (better ls)
-    if ! command -v eza &> /dev/null; then
-        "${apt_install[@]}" gpg
-        wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | sudo gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
-        echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list
+    if ! command -v eza >/dev/null 2>&1; then
+        echo "✨ Installing eza..."
+        sudo mkdir -p /etc/apt/keyrings
+        curl -fsSL https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | sudo gpg --dearmor --yes -o /etc/apt/keyrings/gierens.gpg
+        echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list >/dev/null
         sudo chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list
         sudo apt-get update
         "${apt_install[@]}" eza
     fi
 
-    # Install bat (better cat)
-    "${apt_install[@]}" bat
-    # Create symlink for bat if it's installed as batcat
-    if command -v batcat &> /dev/null && ! command -v bat &> /dev/null; then
-        mkdir -p ~/.local/bin
-        ln -sf /usr/bin/batcat ~/.local/bin/bat
-    fi
-
-    # Install fd (better find)
-    "${apt_install[@]}" fd-find
-    # Create symlink for fd if it's installed as fdfind
-    if command -v fdfind &> /dev/null && ! command -v fd &> /dev/null; then
-        mkdir -p ~/.local/bin
-        ln -sf /usr/bin/fdfind ~/.local/bin/fd
-    fi
-
-    # Install ripgrep (better grep)
-    "${apt_install[@]}" ripgrep
-    
-    echo "🐍 Installing pipx for Python package management..."
-    "${apt_install[@]}" pipx
-
     install_linux_neovim
     install_linux_tree_sitter
+    install_linux_lazygit
+    install_linux_font
+    install_linux_pyenv
+    install_linux_starship
+}
 
-    echo "🎨 Installing Nerd Font (JetBrains Mono)..."
-    # Download and install JetBrains Mono Nerd Font
-    FONT_DIR="$HOME/.local/share/fonts"
-    mkdir -p "$FONT_DIR"
-    
-    if [ ! -f "$FONT_DIR/JetBrainsMono-Regular.ttf" ]; then
-        echo "Downloading JetBrains Mono Nerd Font..."
-        wget -O /tmp/JetBrainsMono.zip https://github.com/ryanoasis/nerd-fonts/releases/download/v3.0.2/JetBrainsMono.zip
-        unzip -o /tmp/JetBrainsMono.zip -d "$FONT_DIR"
-        rm /tmp/JetBrainsMono.zip
-        fc-cache -fv
-        echo "✅ JetBrains Mono Nerd Font installed"
-    else
-        echo "✅ JetBrains Mono Nerd Font already installed"
+install_linux_lazygit() {
+    local lazygit_version="0.61.1"
+    local asset_arch=""
+    local tmp_dir=""
+
+    if command -v lazygit >/dev/null 2>&1; then
+        echo "✅ lazygit is already installed"
+        return
     fi
 
-    echo "🚀 Installing pyenv..."
-    if [ ! -d "$HOME/.pyenv" ]; then
-        curl https://pyenv.run | bash
-        echo "✅ pyenv installed successfully"
-    else
+    case "$(uname -m)" in
+        x86_64|amd64) asset_arch="x86_64" ;;
+        aarch64|arm64) asset_arch="arm64" ;;
+        *)
+            echo "❌ Unsupported architecture for lazygit: $(uname -m)" >&2
+            return 1
+            ;;
+    esac
+
+    echo "✨ Installing lazygit..."
+    tmp_dir="$(mktemp -d)"
+    curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v${lazygit_version}/lazygit_${lazygit_version}_Linux_${asset_arch}.tar.gz" -o "$tmp_dir/lazygit.tar.gz"
+    tar -xzf "$tmp_dir/lazygit.tar.gz" -C "$tmp_dir" lazygit
+    install -m 0755 "$tmp_dir/lazygit" "$HOME/.local/bin/lazygit"
+    rm -rf "$tmp_dir"
+}
+
+install_linux_font() {
+    local font_dir="$HOME/.local/share/fonts"
+    local font_version="v3.0.2"
+    local tmp_zip=""
+
+    if find "$font_dir" -maxdepth 1 -name 'JetBrainsMono*NerdFont*.ttf' -print -quit 2>/dev/null | grep -q .; then
+        echo "✅ JetBrains Mono Nerd Font is already installed"
+        return
+    fi
+
+    echo "🎨 Installing JetBrains Mono Nerd Font..."
+    mkdir -p "$font_dir"
+    tmp_zip="$(mktemp)"
+    curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/download/${font_version}/JetBrainsMono.zip" -o "$tmp_zip"
+    unzip -oq "$tmp_zip" -d "$font_dir"
+    rm -f "$tmp_zip"
+    fc-cache -f
+}
+
+install_linux_pyenv() {
+    if [ -d "$HOME/.pyenv" ]; then
         echo "✅ pyenv is already installed"
+        return
+    fi
+
+    echo "🐍 Installing pyenv..."
+    curl -fsSL https://pyenv.run | bash
+}
+
+install_linux_starship() {
+    if command -v starship >/dev/null 2>&1; then
+        echo "✅ Starship is already installed"
+        return
     fi
 
     echo "🌟 Installing Starship..."
-    if ! command -v starship &> /dev/null; then
-        mkdir -p "$HOME/.local/bin"
-        curl -sS https://starship.rs/install.sh | sh -s -- --yes --bin-dir "$HOME/.local/bin"
-        echo "✅ Starship installed successfully"
+    curl -fsSL https://starship.rs/install.sh | sh -s -- --yes --bin-dir "$HOME/.local/bin"
+}
+
+install_nvm_and_node() {
+    if [ -z "${NVM_DIR-}" ]; then
+        if [ -n "${XDG_CONFIG_HOME-}" ]; then
+            NVM_DIR="$XDG_CONFIG_HOME/nvm"
+        else
+            NVM_DIR="$HOME/.nvm"
+        fi
+    fi
+    export NVM_DIR
+
+    if [ ! -s "$NVM_DIR/nvm.sh" ]; then
+        echo "📦 Installing NVM..."
+        curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
     else
-        echo "✅ Starship is already installed"
+        echo "✅ NVM is already installed"
+    fi
+
+    # nvm is a shell function, so load it explicitly in this bootstrap process.
+    # shellcheck source=/dev/null
+    . "$NVM_DIR/nvm.sh"
+
+    echo "📦 Installing the latest Node.js LTS release..."
+    nvm install --lts
+    nvm alias default 'lts/*'
+    nvm use default
+    hash -r
+    echo "✅ Node.js $(node --version) and npm $(npm --version) are active"
+}
+
+install_opencode() {
+    if command -v opencode >/dev/null 2>&1 || [ -x "$HOME/.opencode/bin/opencode" ]; then
+        echo "✅ OpenCode is already installed"
+        return
+    fi
+
+    echo "📦 Installing OpenCode..."
+    curl -fsSL https://opencode.ai/install | bash
+    hash -r
+}
+
+install_pi() {
+    if command -v pi >/dev/null 2>&1; then
+        echo "✅ Pi is already installed"
+        return
+    fi
+
+    # The curl installer opens /dev/tty and renders an interactive full-screen
+    # flow. This is the same npm installation command it ultimately executes,
+    # but remains non-interactive and uses NVM's writable global prefix.
+    echo "📦 Installing Pi..."
+    npm install -g --ignore-scripts --min-release-age=0 --no-fund --no-audit \
+        @earendil-works/pi-coding-agent
+    hash -r
+}
+
+install_herdr() {
+    if command -v herdr >/dev/null 2>&1; then
+        echo "✅ HerdR is already installed"
+        return
+    fi
+
+    echo "🐑 Installing HerdR..."
+    if [ "$OS" = "macos" ]; then
+        require_command brew
+        brew install herdr
+    else
+        curl -fsSL https://herdr.dev/install.sh | sh
+    fi
+    hash -r
+}
+
+install_vundle() {
+    if [ -d "$HOME/.vim/bundle/Vundle.vim" ]; then
+        echo "✅ Vundle is already installed"
+        return
+    fi
+
+    echo "📦 Installing Vundle..."
+    git clone https://github.com/VundleVim/Vundle.vim.git "$HOME/.vim/bundle/Vundle.vim"
+}
+
+install_python_tools() {
+    if ! command -v pipx >/dev/null 2>&1; then
+        echo "⚠️  pipx not found; skipping Python tools"
+        return
+    fi
+
+    pipx ensurepath >/dev/null
+    for package in black flake8; do
+        if pipx list --short 2>/dev/null | grep -qx "$package"; then
+            echo "✅ $package is already installed"
+        else
+            echo "🐍 Installing $package with pipx..."
+            pipx install "$package"
+        fi
+    done
+}
+
+backup_conflicts() {
+    local backup_dir="$1"
+    local file=""
+    local relative=""
+    local conflicts=(
+        "$HOME/.bashrc"
+        "$HOME/.bash_profile"
+        "$HOME/.zshrc"
+        "$HOME/.tmux.conf"
+        "$HOME/.vimrc"
+        "$HOME/.hushlogin"
+        "$HOME/.config/starship.toml"
+        "$HOME/.config/nvim"
+        "$HOME/.config/herdr/config.toml"
+    )
+
+    for file in "${conflicts[@]}"; do
+        if [ ! -e "$file" ] && [ ! -L "$file" ]; then
+            continue
+        fi
+
+        if [ -L "$file" ]; then
+            case "$(readlink "$file")" in
+                *dotfiles/*) continue ;;
+            esac
+        fi
+
+        relative="${file#"$HOME"/}"
+        mkdir -p "$backup_dir/$(dirname "$relative")"
+        echo "  Backing up ~/$relative"
+        mv "$file" "$backup_dir/$relative"
+    done
+}
+
+stow_dotfiles() {
+    local backup_dir=""
+    local packages=(bash shell zsh tmux vim nvim misc starship pi herdr)
+    backup_dir="$HOME/dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
+
+    require_command stow
+    mkdir -p "$backup_dir" "$HOME/.config" "$HOME/.config/herdr" "$HOME/.pi/agent/extensions"
+
+    echo "📋 Backing up conflicting dotfiles..."
+    backup_conflicts "$backup_dir"
+
+    echo "🔗 Stowing dotfiles packages..."
+    (
+        cd "$DOTFILES_DIR"
+        stow --restow --target="$HOME" "${packages[@]}"
+    )
+
+    if find "$backup_dir" -mindepth 1 -print -quit | grep -q .; then
+        echo "📁 Original files backed up to: $backup_dir"
+    else
+        rmdir "$backup_dir"
     fi
 }
 
-# Install packages based on OS
-if [[ "$OS" == "macos" ]]; then
-    install_macos_packages
-    if [[ "$APPLY_MACOS_DEFAULTS" -eq 1 ]]; then
-        "$DOTFILES_DIR/macos/defaults.sh"
+install_webfetch_dependencies() {
+    local extension_dir="$DOTFILES_DIR/pi/.pi/agent/extensions/webfetch"
+    local stamp_file="$extension_dir/node_modules/.dotfiles-lock-checksum"
+    local lock_checksum=""
+
+    require_command npm
+    lock_checksum="$(cksum < "$extension_dir/package-lock.json")"
+
+    if [ -f "$stamp_file" ] && [ "$(cat "$stamp_file")" = "$lock_checksum" ] && (cd "$extension_dir" && npm ls --depth=0 >/dev/null 2>&1); then
+        echo "✅ Pi webfetch dependencies are up to date"
+        return
+    fi
+
+    echo "📦 Installing Pi webfetch dependencies..."
+    (
+        cd "$extension_dir"
+        npm ci --no-audit --no-fund
+        printf '%s\n' "$lock_checksum" > node_modules/.dotfiles-lock-checksum
+        npm run typecheck
+    )
+}
+
+install_vim_plugins() {
+    if ! command -v vim >/dev/null 2>&1; then
+        echo "⚠️  Vim not found; skipping Vim plugins"
+        return
+    fi
+
+    echo "📦 Installing Vim plugins..."
+    vim -es -u "$HOME/.vimrc" +PluginInstall +qall
+}
+
+if [ "$STOW_ONLY" -eq 0 ]; then
+    if [ "$SKIP_PACKAGES" -eq 0 ]; then
+        if [ "$OS" = "macos" ]; then
+            install_macos_packages
+        else
+            install_linux_packages
+        fi
     else
-        echo "⚙️ Skipping macOS defaults. Run ./bootstrap.sh --macos-defaults to apply them."
+        echo "📦 Skipping OS package installation"
     fi
-elif [[ "$OS" == "linux" ]]; then
-    install_linux_packages
+
+    mkdir -p "$HOME/.local/bin"
+    install_nvm_and_node
+    install_opencode
+    install_pi
+    install_herdr
+    install_vundle
+    install_python_tools
 fi
 
-echo "📦 Installing NVM..."
-if [ -d "$HOME/.nvm" ] || command -v nvm &> /dev/null; then
-    echo "✅ NVM is already installed"
-else
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
-    echo "✅ NVM installed successfully"
+stow_dotfiles
+
+if [ "$STOW_ONLY" -eq 0 ]; then
+    install_webfetch_dependencies
+    install_vim_plugins
 fi
 
-echo "📦 Installing OpenCode..."
-if command -v opencode &> /dev/null || [ -x "$HOME/.opencode/bin/opencode" ]; then
-    echo "✅ OpenCode is already installed"
-else
-    curl -fsSL https://opencode.ai/install | bash
-    echo "✅ OpenCode installed successfully"
-fi
-
-echo "📦 Installing Vundle for Vim plugin management..."
-if [ -d "$HOME/.vim/bundle/Vundle.vim" ]; then
-    echo "✅ Vundle is already installed"
-else
-    git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
-    echo "✅ Vundle installed successfully"
-fi
-
-echo "🐍 Installing Python development tools via pipx..."
-if command -v pipx &> /dev/null; then
-    # Ensure pipx path is available
-    pipx ensurepath
-    
-    # Install black (code formatter)
-    if ! pipx list | grep -q "black"; then
-        echo "Installing black (Python code formatter)..."
-        pipx install black
-        echo "✅ black installed successfully"
-    else
-        echo "✅ black is already installed"
-    fi
-    
-    # Install flake8 (linter)
-    if ! pipx list | grep -q "flake8"; then
-        echo "Installing flake8 (Python linter)..."
-        pipx install flake8
-        echo "✅ flake8 installed successfully"
-    else
-        echo "✅ flake8 is already installed"
-    fi
-else
-    echo "⚠️  pipx not found, skipping Python tool installation"
-fi
-
-echo "🔗 Installing dotfiles with Stow..."
-# Backup existing dotfiles that might conflict
-echo "📋 Backing up existing dotfiles..."
-backup_dir="$HOME/dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
-mkdir -p "$backup_dir"
-
-# List of files that might conflict
-conflicts=(
-    "$HOME/.bashrc"
-    "$HOME/.bash_profile"
-    "$HOME/.zshrc"
-    "$HOME/.tmux.conf"
-    "$HOME/.vimrc"
-    "$HOME/.hushlogin"
-    "$HOME/.config/starship.toml"
-    "$HOME/.config/nvim"
-)
-
-# Move conflicting files to backup
-for file in "${conflicts[@]}"; do
-    if [ -e "$file" ] && [ ! -L "$file" ]; then
-        echo "  Backing up $(basename "$file")"
-        mv "$file" "$backup_dir/"
-    fi
-done
-
-# Create .config directory if it doesn't exist
-mkdir -p "$HOME/.config"
-
-# Now stow the packages
-echo "🔗 Stowing dotfiles packages..."
-(
-    cd "$DOTFILES_DIR"
-    stow --target="$HOME" bash shell zsh tmux vim nvim misc starship pi
-)
-echo "✅ Dotfiles installed successfully!"
-
-# Install vim plugins
-echo "📦 Installing Vim plugins..."
-vim -es -u "$HOME/.vimrc" +PluginInstall +qall
-echo "✅ Vim plugins installed successfully!"
-
-if [ -d "$backup_dir" ] && [ "$(ls -A "$backup_dir")" ]; then
-    echo "📁 Original files backed up to: $backup_dir"
-else
-    # Remove empty backup directory
-    rmdir "$backup_dir" 2>/dev/null || true
+if [ "$OS" = "macos" ] && [ "$APPLY_MACOS_DEFAULTS" -eq 1 ]; then
+    "$DOTFILES_DIR/macos/defaults.sh"
+elif [ "$OS" = "macos" ]; then
+    echo "⚙️  Skipping macOS defaults. Use --macos-defaults to apply them."
 fi
 
 echo "🎉 Setup complete!"
-echo ""
+echo
 echo "Next steps:"
-if [[ "$OS" == "macos" ]]; then
-    echo "1. Restart your terminal or run: source ~/.zshrc"
-    echo "2. Configure Starship: https://starship.rs/config/"
-    echo "3. Install Node.js: nvm install --lts"
-    echo "4. Install Python: pyenv install 3.11.0 && pyenv global 3.11.0"
-    echo "5. Python tools available: black (formatter), flake8 (linter)"
-    echo "6. Vim plugins are ready! Use :PluginInstall in vim to add more"
-elif [[ "$OS" == "linux" ]]; then
-    echo "1. Restart your terminal or run: source ~/.zshrc"
-    echo "2. Configure Starship: https://starship.rs/config/"
-    echo "3. Install Node.js: nvm install --lts"
-    echo "4. Install Python: pyenv install 3.11.0 && pyenv global 3.11.0"
-    echo "5. Python tools available: black (formatter), flake8 (linter)"
-    echo "6. Vim plugins are ready! Use :PluginInstall in vim to add more"
+echo "1. Restart your terminal or source your shell configuration."
+echo "2. Run 'nvim' once to let LazyVim install its plugins, then run :LazyHealth."
+echo "3. Install a Python version if needed: pyenv install 3.11.0 && pyenv global 3.11.0"
+if [ "$OS" = "linux" ]; then
+    echo "4. To make Zsh your login shell, run: chsh -s \"$(command -v zsh)\""
 fi

@@ -1,168 +1,106 @@
-# Testing Dotfiles with Docker
+# Testing the dotfiles
 
-This document provides instructions for testing the cross-platform dotfiles setup using Docker.
+The repository has a fast local validation suite and a complete Ubuntu bootstrap test.
 
-## Prerequisites
+## Local checks
 
-- Docker installed on your system
-- Docker Compose (usually included with Docker Desktop)
+Requirements:
 
-## Quick Test
+- Bash
+- GNU Stow
+- Node.js and npm
+- Optional but recommended: Zsh and ShellCheck
 
-### Option 1: Using Docker Compose (Recommended)
+Run:
 
 ```bash
-# Build and run the test container
-docker-compose run ubuntu-test
-
-# Once inside the container, test the bootstrap script
-./bootstrap.sh
-
-# Test the installation
-source ~/.zshrc
+./scripts/test.sh
 # or
+make test
+```
+
+The script performs:
+
+1. Bash syntax validation
+2. Zsh syntax validation when Zsh is available
+3. ShellCheck when installed
+4. Installation of every Stow package into an isolated temporary home
+5. Bash startup and shared-function smoke tests
+6. A clean `npm ci` and TypeScript check for the Pi webfetch extension
+
+## Complete Ubuntu bootstrap
+
+Requirements:
+
+- Docker
+- Docker Compose v2 (`docker compose`)
+
+Run:
+
+```bash
+./scripts/test-docker.sh
+# or
+make test-docker
+```
+
+This builds `Dockerfile`, runs the complete Linux bootstrap as an unprivileged sudo-enabled user, verifies every expected installed command and link, and then runs the repository checks in the Ubuntu image.
+
+The test exercises:
+
+- apt package installation, including Zsh and `lsof`
+- Linux Neovim, tree-sitter, font, pyenv, and Starship installation
+- NVM and latest-LTS Node installation
+- OpenCode, Pi, and HerdR installation
+- Stow linking and conflict handling
+- Pi webfetch dependency installation and type checking
+- Vim plugin installation
+
+The full test downloads external tools and can take several minutes.
+
+## Interactive container
+
+To inspect the resulting Ubuntu environment manually:
+
+```bash
+docker compose build ubuntu-test
+docker compose run --rm ubuntu-test
+```
+
+Inside the container:
+
+```bash
+./bootstrap.sh
 source ~/.bashrc
+command -v node npm opencode pi herdr nvim tree-sitter
+nvim --version
+npm run --prefix pi/.pi/agent/extensions/webfetch typecheck
 ```
 
-### Option 2: Clean Ubuntu Environment
+Use `-T` for non-interactive automation so installers cannot wait for terminal input:
 
 ```bash
-# Run a fresh Ubuntu container each time
-docker-compose run ubuntu-clean
-
-# Inside the container, run as testuser:
-su - testuser
-cd /home/testuser/dotfiles
-./bootstrap.sh
+docker compose run --rm -T ubuntu-bootstrap-test
 ```
 
-### Option 3: Manual Docker Build
+## Bootstrap modes
+
+For quick Stow-only testing on a machine that already has GNU Stow:
 
 ```bash
-# Build the Docker image
-docker build -t dotfiles-test .
-
-# Run the container
-docker run -it --rm dotfiles-test
-
-# Inside the container, test the bootstrap script
-./bootstrap.sh
+./bootstrap.sh --stow-only
 ```
 
-## Testing Steps
+To test user-level installers while avoiding Homebrew or apt changes:
 
-1. **Run the bootstrap script:**
-   ```bash
-   ./bootstrap.sh
-   ```
-
-2. **Verify OS detection:**
-   The script should detect "linux" and use apt-get for installations.
-
-3. **Test installed tools:**
-   ```bash
-   # Check if tools are installed
-   which starship
-   which fzf
-   which eza
-   which bat
-   which fd
-   which rg
-   
-   # Check if symlinks work (Linux-specific)
-   ls -la ~/.local/bin/
-   ```
-
-4. **Test shell functions:**
-   ```bash
-   # Source the shell configuration
-   source ~/.zshrc  # or ~/.bashrc
-   
-   # Test functions
-   myip
-   mkcd test-dir
-   up
-   killport 8080
-   serve 3000 &
-   killport 3000
-   ```
-
-5. **Test aliases:**
-   ```bash
-   # Test navigation aliases
-   ...
-   cd -
-   
-   # Test git alias
-   g status
-   
-   # Test enhanced commands (if available)
-   ls  # should use eza if installed
-   cat README.md  # should use bat if installed
-   ```
-
-6. **Test Starship prompt:**
-   ```bash
-   # The prompt should show the Starship design
-   # Navigate to a git repo to test git integration
-   cd /tmp
-   git init
-   # Prompt should show git branch
-   ```
-
-## Troubleshooting
-
-### Font Issues
-- Fonts won't display properly in terminal without GUI
-- This is expected in Docker containers
-
-### Permission Issues
-- The container runs as `testuser` with sudo privileges
-- Password is `testuser` if needed
-
-### Network Issues
-- If downloads fail, check your internet connection
-- Some corporate networks may block certain URLs
+```bash
+./bootstrap.sh --skip-packages
+```
 
 ## Cleanup
 
 ```bash
-# Remove containers
-docker-compose down
-
-# Remove built image
-docker rmi dotfiles-test
-
-# Clean up volumes (if any)
-docker system prune
+docker compose down --remove-orphans
+docker image rm dotfiles-ubuntu-test
 ```
 
-## Testing Different Ubuntu Versions
-
-You can test against different Ubuntu versions by modifying the Dockerfile:
-
-```dockerfile
-# Change the base image
-FROM ubuntu:20.04  # or ubuntu:18.04, ubuntu:24.04
-```
-
-Then rebuild:
-```bash
-docker-compose build ubuntu-test
-```
-
-## Expected Results
-
-After successful installation, you should see:
-- ✅ All development tools installed
-- ✅ Starship prompt active
-- ✅ Modern CLI tools working (with symlinks where needed)
-- ✅ Shell functions operational
-- ✅ Cross-platform compatibility confirmed
-
-## Notes
-
-- The Docker environment simulates a fresh Ubuntu installation
-- Some GUI features (like Finder aliases) won't work in Docker
-- Font rendering may not be perfect without a GUI terminal
-- This tests the Linux installation path of the bootstrap script
+Pi's webfetch `node_modules` directory is ignored by Git. Remove it if you want to reclaim local space; bootstrap or `npm ci` will restore it.

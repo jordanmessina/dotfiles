@@ -1,0 +1,9 @@
+onboarding = false
+
+# Match tmux defaults: prefix+% splits left/right, prefix+" splits top/bottom.
+[keys]
+split_vertical = "prefix+%"
+split_horizontal = 'prefix+"'
+
+[ui.toast]
+delivery = "terminal"

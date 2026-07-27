@@ -5,7 +5,12 @@
 [[ -d "$HOME/.opencode/bin" ]] && export PATH="$HOME/.opencode/bin:$PATH"
 
 # NVM configuration
-export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+if [ -n "${XDG_CONFIG_HOME-}" ]; then
+    NVM_DIR="$XDG_CONFIG_HOME/nvm"
+else
+    NVM_DIR="$HOME/.nvm"
+fi
+export NVM_DIR
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
 
 # pyenv configuration
