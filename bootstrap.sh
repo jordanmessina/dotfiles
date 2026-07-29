@@ -312,6 +312,31 @@ install_pi() {
     hash -r
 }
 
+install_pi_packages() {
+    local manifest="$DOTFILES_DIR/PiPackages"
+    local installed_packages=""
+    local package=""
+
+    require_command pi
+    [ -f "$manifest" ] || { echo "❌ Pi package manifest not found: $manifest" >&2; return 1; }
+    installed_packages="$(pi list 2>/dev/null || true)"
+
+    while IFS= read -r package || [ -n "$package" ]; do
+        case "$package" in
+            ""|\#*) continue ;;
+        esac
+
+        if printf '%s\n' "$installed_packages" | grep -Fqx "  $package"; then
+            echo "✅ Pi package is already installed: $package"
+            continue
+        fi
+
+        echo "📦 Installing Pi package: $package"
+        pi install "$package"
+        installed_packages="${installed_packages}"$'\n'"  $package"
+    done < "$manifest"
+}
+
 install_herdr() {
     if command -v herdr >/dev/null 2>&1; then
         echo "✅ HerdR is already installed"
@@ -460,6 +485,7 @@ if [ "$STOW_ONLY" -eq 0 ]; then
     install_nvm_and_node
     install_opencode
     install_pi
+    install_pi_packages
     install_herdr
     install_vundle
     install_python_tools

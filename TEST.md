@@ -50,7 +50,7 @@ The test exercises:
 - apt package installation, including Zsh and `lsof`
 - Linux Neovim, tree-sitter, font, pyenv, and Starship installation
 - NVM and latest-LTS Node installation
-- OpenCode, Pi, and HerdR installation
+- OpenCode, Pi, the packages in `PiPackages`, and HerdR installation
 - Stow linking and conflict handling
 - Pi webfetch dependency installation and type checking
 - Vim plugin installation

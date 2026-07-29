@@ -36,6 +36,11 @@ for command_name in "${commands[@]}"; do
     fi
 done
 
+if ! pi list | grep -Fqx '  npm:pi-mcp-adapter'; then
+    echo "Missing expected Pi package: npm:pi-mcp-adapter" >&2
+    exit 1
+fi
+
 # shellcheck source=/dev/null
 . "$HOME/.nvm/nvm.sh"
 if [ "$(nvm current)" != "$(nvm version 'lts/*')" ]; then

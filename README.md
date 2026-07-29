@@ -68,6 +68,7 @@ The bootstrap also:
 - Sets `lts/*` as NVM's default Node version
 - Installs OpenCode through its official installer
 - Installs Pi non-interactively from the official `@earendil-works/pi-coding-agent` npm package
+- Installs the user-scoped Pi packages declared in [`PiPackages`](PiPackages)
 - Installs HerdR through Homebrew on macOS or its official installer on Linux
 - Installs Black and Flake8 with pipx
 - Installs Vundle and the configured Vim plugins
@@ -89,6 +90,7 @@ The bootstrap also:
 ├── vim/                     # ~/.vimrc
 ├── zsh/                     # ~/.zshrc
 ├── Brewfile                 # Homebrew dependency manifest
+├── PiPackages               # User-scoped Pi package manifest
 ├── bootstrap.sh             # Cross-platform installer
 └── scripts/                 # Local and Docker validation
 ```
@@ -139,7 +141,9 @@ The fallback Vim configuration uses Vundle, a colorscheme collection, four-space
 
 `pi/.pi/agent/extensions/webfetch` registers a global `webfetch` tool. It supports text, Markdown, HTML, and image responses, enforces response and timeout limits, and saves complete output to a temporary file when tool output is truncated.
 
-Its dependencies are intentionally ignored by Git and restored during bootstrap:
+[`PiPackages`](PiPackages) lists third-party Pi packages that bootstrap installs with `pi install`. It currently installs `pi-mcp-adapter` without pinning a version, while each machine keeps its own `~/.pi/agent/settings.json`, credentials, and runtime state.
+
+Its webfetch dependencies are intentionally ignored by Git and restored during bootstrap:
 
 ```bash
 npm ci --prefix pi/.pi/agent/extensions/webfetch
