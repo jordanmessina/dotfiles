@@ -4,7 +4,7 @@ set -Eeuo pipefail
 
 export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
 
-FORK_AGENT_PACKAGE="git:github.com/jordanmessina/pi-fork-agent@3fcf9e666e3a54a9f540e122de088c59120d5f8e"
+FORK_AGENT_PACKAGE="git:github.com/jordanmessina/pi-fork-agent@2227b78693dbea36352c64a63cbd6353c175ff09"
 
 if ! command -v node >/dev/null 2>&1 && [ -s "$HOME/.nvm/nvm.sh" ]; then
     # shellcheck source=/dev/null
