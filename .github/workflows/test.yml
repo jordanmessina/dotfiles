@@ -14,13 +14,6 @@ jobs:
       - name: Install system test dependencies
         run: sudo apt-get update && sudo apt-get install -y shellcheck stow zsh
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: pi/.pi/agent/extensions/webfetch/package-lock.json
-
       - name: Run repository checks
         run: ./scripts/test.sh
 

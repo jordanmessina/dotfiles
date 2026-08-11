@@ -8,7 +8,6 @@ Requirements:
 
 - Bash
 - GNU Stow
-- Node.js and npm
 - Optional but recommended: Zsh and ShellCheck
 
 Run:
@@ -25,8 +24,9 @@ The script performs:
 2. Zsh syntax validation when Zsh is available
 3. ShellCheck when installed
 4. Installation of every Stow package into an isolated temporary home
-5. Bash startup and shared-function smoke tests
-6. A clean `npm ci` and TypeScript check for the Pi webfetch extension
+5. Pi web-access LAN configuration checks
+6. Commit-pinned public `pi-fork-agent` package manifest checks
+7. Bash startup and shared-function smoke tests
 
 ## Complete Ubuntu bootstrap
 
@@ -52,7 +52,8 @@ The test exercises:
 - NVM and latest-LTS Node installation
 - OpenCode, Pi, the packages in `PiPackages`, and HerdR installation
 - Stow linking and conflict handling
-- Pi webfetch dependency installation and type checking
+- Pi web-access package installation and LAN configuration
+- Public `pi-fork-agent` Git package installation
 - Vim plugin installation
 
 The full test downloads external tools and can take several minutes.
@@ -73,7 +74,7 @@ Inside the container:
 source ~/.bashrc
 command -v node npm opencode pi herdr nvim tree-sitter
 nvim --version
-npm run --prefix pi/.pi/agent/extensions/webfetch typecheck
+pi list
 ```
 
 Use `-T` for non-interactive automation so installers cannot wait for terminal input:
@@ -102,5 +103,3 @@ To test user-level installers while avoiding Homebrew or apt changes:
 docker compose down --remove-orphans
 docker image rm dotfiles-ubuntu-test
 ```
-
-Pi's webfetch `node_modules` directory is ignored by Git. Remove it if you want to reclaim local space; bootstrap or `npm ci` will restore it.

@@ -72,7 +72,6 @@ The bootstrap also:
 - Installs HerdR through Homebrew on macOS or its official installer on Linux
 - Installs Black and Flake8 with pipx
 - Installs Vundle and the configured Vim plugins
-- Installs and type-checks the Pi webfetch extension dependencies with `npm ci`
 
 ## Repository structure
 
@@ -83,7 +82,7 @@ The bootstrap also:
 ├── macos/                   # Optional macOS defaults
 ├── misc/                    # ~/.hushlogin
 ├── nvim/                    # ~/.config/nvim (LazyVim)
-├── pi/                      # ~/.pi/agent/extensions
+├── pi/                      # ~/.pi configuration
 ├── shell/                   # Shared aliases, exports, functions, etc.
 ├── starship/                # ~/.config/starship.toml
 ├── tmux/                    # ~/.tmux.conf
@@ -137,18 +136,15 @@ Then run `:LazyHealth`.
 
 The fallback Vim configuration uses Vundle, a colorscheme collection, four-space indentation, and Black-on-save for Python files.
 
-## Pi extensions
+## Pi packages
 
-`pi/.pi/agent/extensions/webfetch` registers a global `webfetch` tool. It supports text, Markdown, HTML, and image responses, enforces response and timeout limits, and saves complete output to a temporary file when tool output is truncated.
+[`PiPackages`](PiPackages) lists the third-party Pi packages that bootstrap installs with `pi install`. It includes `pi-mcp-adapter` for MCP integrations, `pi-web-access` for web search and content extraction, and the commit-pinned public [`pi-fork-agent`](https://github.com/jordanmessina/pi-fork-agent) Git package for focused delegation.
 
-[`PiPackages`](PiPackages) lists third-party Pi packages that bootstrap installs with `pi install`. It currently installs `pi-mcp-adapter` without pinning a version, while each machine keeps its own `~/.pi/agent/settings.json`, credentials, and runtime state.
+`pi/.pi/web-search.json` configures `pi-web-access` to permit loopback, private LAN, Docker/Kubernetes, Tailscale/CGNAT, and local IPv6 ranges. Literal `localhost` URLs remain blocked by the extension; use `127.0.0.1` or `[::1]`.
 
-Its webfetch dependencies are intentionally ignored by Git and restored during bootstrap:
+The Git-installed [`pi-fork-agent`](https://github.com/jordanmessina/pi-fork-agent) package adds `fork_agent`. It copies the exact active conversation branch into a linked child session, appends one focused task, and preserves the parent's provider cache key and runtime configuration. Each child runs in a separate Pi SDK process with checked tool ordering and public schema fields, giving concurrent children independent WebSocket and continuation state. Child prompts forbid further delegation, model-invisible markers reject recursive calls and child compaction, and the parent receives only bounded final-answer text. Persisted parents keep inspectable child sessions beside the parent JSONL file. Provider serialization and cache behavior remain provider-dependent.
 
-```bash
-npm ci --prefix pi/.pi/agent/extensions/webfetch
-npm run --prefix pi/.pi/agent/extensions/webfetch typecheck
-```
+Each machine keeps its own `~/.pi/agent/settings.json`, credentials, and runtime state.
 
 ## HerdR
 
@@ -165,7 +161,7 @@ chsh -s "$(command -v zsh)"
 Install selected packages without running bootstrap:
 
 ```bash
-mkdir -p ~/.config/herdr ~/.pi/agent/extensions
+mkdir -p ~/.config/herdr ~/.pi
 stow --target="$HOME" shell zsh starship tmux nvim herdr pi
 ```
 
@@ -177,7 +173,7 @@ stow --delete --target="$HOME" nvim
 
 ## Testing
 
-Run local syntax, ShellCheck, Stow, shell smoke, and TypeScript checks:
+Run local syntax, ShellCheck, Stow, shell smoke, and Pi configuration checks:
 
 ```bash
 ./scripts/test.sh

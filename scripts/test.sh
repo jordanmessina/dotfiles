@@ -4,6 +4,7 @@ set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PACKAGES=(bash shell zsh tmux vim nvim misc starship pi herdr)
+FORK_AGENT_PACKAGE="git:github.com/jordanmessina/pi-fork-agent@3fcf9e666e3a54a9f540e122de088c59120d5f8e"
 SHELL_FILES=(
     bootstrap.sh
     macos/defaults.sh
@@ -43,12 +44,19 @@ fi
 echo "Testing Stow packages in an isolated home..."
 test_home="$(mktemp -d)"
 trap 'rm -rf "$test_home"' EXIT
-mkdir -p "$test_home/.config/herdr" "$test_home/.pi/agent/extensions"
+mkdir -p "$test_home/.config/herdr" "$test_home/.pi"
 stow --dir="$ROOT" --target="$test_home" "${PACKAGES[@]}"
 
 [ -L "$test_home/.bashrc" ]
 [ -L "$test_home/.config/herdr/config.toml" ]
-[ -L "$test_home/.pi/agent/extensions/webfetch" ]
+[ -L "$test_home/.pi/web-search.json" ]
+[ ! -e "$test_home/.pi/agent/extensions/fork-agent" ]
+grep -Fqx "$FORK_AGENT_PACKAGE" PiPackages
+for network in \
+    127.0.0.0/8 10.0.0.0/8 100.64.0.0/10 172.16.0.0/12 \
+    192.168.0.0/16 ::1/128 fc00::/7 fe80::/10; do
+    grep -Fq "\"$network\"" "$test_home/.pi/web-search.json"
+done
 
 HOME="$test_home" bash --noprofile --norc -c '
     source "$HOME/.bashrc"
@@ -56,19 +64,6 @@ HOME="$test_home" bash --noprofile --norc -c '
     type extract >/dev/null
     type venv_source >/dev/null
 '
-
-if ! command -v npm >/dev/null 2>&1 && [ -s "$HOME/.nvm/nvm.sh" ]; then
-    # The Docker bootstrap runs as a child process, so reload NVM for this test process.
-    # shellcheck source=/dev/null
-    . "$HOME/.nvm/nvm.sh"
-fi
-
-echo "Installing and type-checking the Pi webfetch extension..."
-command -v npm >/dev/null 2>&1 || { echo "npm is required for webfetch tests" >&2; exit 1; }
-npm ci --prefix pi/.pi/agent/extensions/webfetch --no-audit --no-fund
-npm run --prefix pi/.pi/agent/extensions/webfetch typecheck
-cksum < pi/.pi/agent/extensions/webfetch/package-lock.json \
-    > pi/.pi/agent/extensions/webfetch/node_modules/.dotfiles-lock-checksum
 
 if command -v tmux >/dev/null 2>&1; then
     echo "Checking tmux configuration..."

@@ -420,7 +420,7 @@ stow_dotfiles() {
     backup_dir="$HOME/dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
 
     require_command stow
-    mkdir -p "$backup_dir" "$HOME/.config" "$HOME/.config/herdr" "$HOME/.pi/agent/extensions"
+    mkdir -p "$backup_dir" "$HOME/.config" "$HOME/.config/herdr" "$HOME/.pi"
 
     echo "📋 Backing up conflicting dotfiles..."
     backup_conflicts "$backup_dir"
@@ -436,28 +436,6 @@ stow_dotfiles() {
     else
         rmdir "$backup_dir"
     fi
-}
-
-install_webfetch_dependencies() {
-    local extension_dir="$DOTFILES_DIR/pi/.pi/agent/extensions/webfetch"
-    local stamp_file="$extension_dir/node_modules/.dotfiles-lock-checksum"
-    local lock_checksum=""
-
-    require_command npm
-    lock_checksum="$(cksum < "$extension_dir/package-lock.json")"
-
-    if [ -f "$stamp_file" ] && [ "$(cat "$stamp_file")" = "$lock_checksum" ] && (cd "$extension_dir" && npm ls --depth=0 >/dev/null 2>&1); then
-        echo "✅ Pi webfetch dependencies are up to date"
-        return
-    fi
-
-    echo "📦 Installing Pi webfetch dependencies..."
-    (
-        cd "$extension_dir"
-        npm ci --no-audit --no-fund
-        printf '%s\n' "$lock_checksum" > node_modules/.dotfiles-lock-checksum
-        npm run typecheck
-    )
 }
 
 install_vim_plugins() {
@@ -494,7 +472,6 @@ fi
 stow_dotfiles
 
 if [ "$STOW_ONLY" -eq 0 ]; then
-    install_webfetch_dependencies
     install_vim_plugins
 fi
 
