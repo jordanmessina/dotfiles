@@ -393,6 +393,7 @@ backup_conflicts() {
         "$HOME/.hushlogin"
         "$HOME/.config/starship.toml"
         "$HOME/.config/nvim"
+        "$HOME/.config/ghostty/config"
         "$HOME/.config/herdr/config.toml"
     )
 
@@ -416,11 +417,12 @@ backup_conflicts() {
 
 stow_dotfiles() {
     local backup_dir=""
-    local packages=(bash shell zsh tmux vim nvim misc starship pi herdr)
+    local packages=(bash shell zsh tmux vim nvim misc starship ghostty pi herdr)
     backup_dir="$HOME/dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
 
     require_command stow
-    mkdir -p "$backup_dir" "$HOME/.config" "$HOME/.config/herdr" "$HOME/.pi"
+    mkdir -p "$backup_dir" "$HOME/.config" "$HOME/.config/ghostty" \
+        "$HOME/.config/herdr" "$HOME/.pi"
 
     echo "📋 Backing up conflicting dotfiles..."
     backup_conflicts "$backup_dir"

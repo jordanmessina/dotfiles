@@ -1,0 +1,10 @@
+# Ghostty configuration
+# Managed by ~/dotfiles and stowed to ~/.config/ghostty/config.
+
+# Detect the active shell so the same configuration works with Bash and Zsh.
+shell-integration = detect
+
+# Install Ghostty's terminfo entry automatically for interactive SSH sessions.
+# ssh-env also forwards Ghostty terminal metadata when the remote SSH server
+# permits it.
+shell-integration-features = cursor,no-sudo,title,ssh-env,ssh-terminfo,path

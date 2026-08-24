@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PACKAGES=(bash shell zsh tmux vim nvim misc starship pi herdr)
+PACKAGES=(bash shell zsh tmux vim nvim misc starship ghostty pi herdr)
 FORK_AGENT_PACKAGE="git:github.com/jordanmessina/pi-fork-agent@2227b78693dbea36352c64a63cbd6353c175ff09"
 SHELL_FILES=(
     bootstrap.sh
@@ -44,10 +44,13 @@ fi
 echo "Testing Stow packages in an isolated home..."
 test_home="$(mktemp -d)"
 trap 'rm -rf "$test_home"' EXIT
-mkdir -p "$test_home/.config/herdr" "$test_home/.pi"
+mkdir -p "$test_home/.config/ghostty" "$test_home/.config/herdr" "$test_home/.pi"
 stow --dir="$ROOT" --target="$test_home" "${PACKAGES[@]}"
 
 [ -L "$test_home/.bashrc" ]
+[ -L "$test_home/.config/ghostty/config" ]
+grep -Eq '^shell-integration-features = .*ssh-terminfo' \
+    "$test_home/.config/ghostty/config"
 [ -L "$test_home/.config/herdr/config.toml" ]
 [ -L "$test_home/.pi/web-search.json" ]
 [ ! -e "$test_home/.pi/agent/extensions/fork-agent" ]

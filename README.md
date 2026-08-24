@@ -72,12 +72,14 @@ The bootstrap also:
 - Installs HerdR through Homebrew on macOS or its official installer on Linux
 - Installs Black and Flake8 with pipx
 - Installs Vundle and the configured Vim plugins
+- Configures Ghostty shell integration to install terminfo automatically over SSH
 
 ## Repository structure
 
 ```text
 .
 ├── bash/                    # ~/.bashrc and ~/.bash_profile
+├── ghostty/                 # ~/.config/ghostty/config
 ├── herdr/                   # ~/.config/herdr/config.toml
 ├── macos/                   # Optional macOS defaults
 ├── misc/                    # ~/.hushlogin
@@ -161,8 +163,8 @@ chsh -s "$(command -v zsh)"
 Install selected packages without running bootstrap:
 
 ```bash
-mkdir -p ~/.config/herdr ~/.pi
-stow --target="$HOME" shell zsh starship tmux nvim herdr pi
+mkdir -p ~/.config/ghostty ~/.config/herdr ~/.pi
+stow --target="$HOME" shell zsh starship tmux nvim ghostty herdr pi
 ```
 
 Remove links for a package:

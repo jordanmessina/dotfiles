@@ -24,9 +24,10 @@ The script performs:
 2. Zsh syntax validation when Zsh is available
 3. ShellCheck when installed
 4. Installation of every Stow package into an isolated temporary home
-5. Pi web-access LAN configuration checks
-6. Commit-pinned public `pi-fork-agent` package manifest checks
-7. Bash startup and shared-function smoke tests
+5. Ghostty SSH terminfo integration configuration
+6. Pi web-access LAN configuration checks
+7. Commit-pinned public `pi-fork-agent` package manifest checks
+8. Bash startup and shared-function smoke tests
 
 ## Complete Ubuntu bootstrap
 
