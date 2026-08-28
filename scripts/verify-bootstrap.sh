@@ -4,7 +4,7 @@ set -Eeuo pipefail
 
 export PATH="$HOME/.local/bin:$HOME/.opencode/bin:$PATH"
 
-FORK_AGENT_PACKAGE="git:github.com/jordanmessina/pi-fork-agent@2227b78693dbea36352c64a63cbd6353c175ff09"
+FORK_AGENT_PACKAGE="git:github.com/jordanmessina/pi-fork-agent@c767e3f2324d0b291c113965b41f4ab24621b5ca"
 
 if ! command -v node >/dev/null 2>&1 && [ -s "$HOME/.nvm/nvm.sh" ]; then
     # shellcheck source=/dev/null
@@ -44,6 +44,12 @@ for package in npm:pi-mcp-adapter npm:pi-web-access "$FORK_AGENT_PACKAGE"; do
         exit 1
     fi
 done
+
+if ! ANTHROPIC_API_KEY=pi-bootstrap-smoke-test \
+    pi --offline --no-session --print </dev/null; then
+    echo "Pi failed to start with installed extensions enabled" >&2
+    exit 1
+fi
 
 # shellcheck source=/dev/null
 . "$HOME/.nvm/nvm.sh"

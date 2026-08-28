@@ -1,4 +1,4 @@
 # User-scoped Pi packages installed by bootstrap.sh
 npm:pi-mcp-adapter
 npm:pi-web-access
-git:github.com/jordanmessina/pi-fork-agent@2227b78693dbea36352c64a63cbd6353c175ff09
+git:github.com/jordanmessina/pi-fork-agent@c767e3f2324d0b291c113965b41f4ab24621b5ca

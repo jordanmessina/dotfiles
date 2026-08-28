@@ -4,7 +4,7 @@ set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PACKAGES=(bash shell zsh tmux vim nvim misc starship ghostty pi herdr)
-FORK_AGENT_PACKAGE="git:github.com/jordanmessina/pi-fork-agent@2227b78693dbea36352c64a63cbd6353c175ff09"
+FORK_AGENT_PACKAGE="git:github.com/jordanmessina/pi-fork-agent@c767e3f2324d0b291c113965b41f4ab24621b5ca"
 SHELL_FILES=(
     bootstrap.sh
     macos/defaults.sh

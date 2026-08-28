@@ -55,6 +55,7 @@ The test exercises:
 - Stow linking and conflict handling
 - Pi web-access package installation and LAN configuration
 - Public `pi-fork-agent` Git package installation
+- Pi startup with all installed extensions enabled
 - Vim plugin installation
 
 The full test downloads external tools and can take several minutes.
