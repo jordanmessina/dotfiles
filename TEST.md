@@ -26,7 +26,7 @@ The script performs:
 4. Installation of every Stow package into an isolated temporary home
 5. Ghostty SSH terminfo integration configuration
 6. Pi web-access LAN configuration checks
-7. Commit-pinned public `pi-fork-agent` package manifest checks
+7. Pi web-access package manifest checks
 8. Bash startup and shared-function smoke tests
 
 ## Complete Ubuntu bootstrap
@@ -51,10 +51,9 @@ The test exercises:
 - apt package installation, including Zsh and `lsof`
 - Linux Neovim, tree-sitter, font, pyenv, and Starship installation
 - NVM and latest-LTS Node installation
-- OpenCode, Pi, the packages in `PiPackages`, and HerdR installation
+- OpenCode v2, latest Pi, and the packages in `PiPackages` installation
 - Stow linking and conflict handling
 - Pi web-access package installation and LAN configuration
-- Public `pi-fork-agent` Git package installation
 - Pi startup with all installed extensions enabled
 - Vim plugin installation
 
@@ -74,7 +73,7 @@ Inside the container:
 ```bash
 ./bootstrap.sh
 source ~/.bashrc
-command -v node npm opencode pi herdr nvim tree-sitter
+command -v node npm opencode pi nvim tree-sitter
 nvim --version
 pi list
 ```

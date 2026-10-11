@@ -44,7 +44,6 @@ Homebrew dependencies are declared in [`Brewfile`](Brewfile):
 
 - Core tools: Vim, Neovim, tmux, pyenv, Starship, Stow, pipx, htop, nmap, wget, and tree
 - Modern CLI tools: fzf, eza, bat, fd, ripgrep, lazygit, and the tree-sitter CLI
-- Agent tooling: HerdR
 - Validation: ShellCheck
 - Font: JetBrains Mono Nerd Font
 
@@ -60,16 +59,21 @@ The Ubuntu/Debian bootstrap installs the equivalent apt and user-level tools, in
 - Starship, pyenv, pipx, Stow, and modern CLI tools
 - JetBrains Mono Nerd Font
 
+On Linux, Zsh is installed but is not automatically made the login shell. To opt in:
+
+```bash
+chsh -s "$(command -v zsh)"
+```
+
 ### Cross-platform user tools
 
 The bootstrap also:
 
 - Installs NVM and the latest Node.js LTS release
 - Sets `lts/*` as NVM's default Node version
-- Installs OpenCode through its official installer
-- Installs Pi non-interactively from the official `@earendil-works/pi-coding-agent` npm package
+- Installs or updates OpenCode v2 through its [official v2 installer](https://opencode.ai/v2/docs), available as `opencode`
+- Installs or updates Pi non-interactively to the latest release of the official `@earendil-works/pi-coding-agent` npm package on every bootstrap run
 - Installs the user-scoped Pi packages declared in [`PiPackages`](PiPackages)
-- Installs HerdR through Homebrew on macOS or its official installer on Linux
 - Installs Black and Flake8 with pipx
 - Installs Vundle and the configured Vim plugins
 - Configures Ghostty shell integration to install terminfo automatically over SSH
@@ -80,7 +84,6 @@ The bootstrap also:
 .
 ├── bash/                    # ~/.bashrc and ~/.bash_profile
 ├── ghostty/                 # ~/.config/ghostty/config
-├── herdr/                   # ~/.config/herdr/config.toml
 ├── macos/                   # Optional macOS defaults
 ├── misc/                    # ~/.hushlogin
 ├── nvim/                    # ~/.config/nvim (LazyVim)
@@ -140,31 +143,19 @@ The fallback Vim configuration uses Vundle, a colorscheme collection, four-space
 
 ## Pi packages
 
-[`PiPackages`](PiPackages) lists the third-party Pi packages that bootstrap installs with `pi install`. It includes `pi-mcp-adapter` for MCP integrations, `pi-web-access` for web search and content extraction, and the commit-pinned public [`pi-fork-agent`](https://github.com/jordanmessina/pi-fork-agent) Git package for focused delegation.
+[`PiPackages`](PiPackages) lists the third-party Pi packages that bootstrap installs with `pi install`. It contains `pi-web-access` for web search and content extraction.
 
 `pi/.pi/web-search.json` configures `pi-web-access` to permit loopback, private LAN, Docker/Kubernetes, Tailscale/CGNAT, and local IPv6 ranges. Literal `localhost` URLs remain blocked by the extension; use `127.0.0.1` or `[::1]`.
 
-The Git-installed [`pi-fork-agent`](https://github.com/jordanmessina/pi-fork-agent) package adds `fork_agent`. It copies the exact active conversation branch into a linked child session, appends one focused task, and preserves the parent's provider cache key and runtime configuration. Each child runs in a separate Pi SDK process with checked tool ordering and public schema fields, giving concurrent children independent WebSocket and continuation state. Child prompts forbid further delegation, model-invisible markers reject recursive calls and child compaction, and the parent receives only bounded final-answer text. Persisted parents keep inspectable child sessions beside the parent JSONL file. Provider serialization and cache behavior remain provider-dependent.
-
 Each machine keeps its own `~/.pi/agent/settings.json`, credentials, and runtime state.
-
-## HerdR
-
-Only the hand-authored `~/.config/herdr/config.toml` is tracked. HerdR logs, sockets, plugin state, and session state remain local and are ignored.
-
-On Linux, Zsh is installed but is not automatically made the login shell. To opt in:
-
-```bash
-chsh -s "$(command -v zsh)"
-```
 
 ## Manual Stow usage
 
 Install selected packages without running bootstrap:
 
 ```bash
-mkdir -p ~/.config/ghostty ~/.config/herdr ~/.pi
-stow --target="$HOME" shell zsh starship tmux nvim ghostty herdr pi
+mkdir -p ~/.config/ghostty ~/.pi
+stow --target="$HOME" shell zsh starship tmux nvim ghostty pi
 ```
 
 Remove links for a package:
@@ -191,7 +182,7 @@ See [`TEST.md`](TEST.md) for details. GitHub Actions performs repository checks 
 
 ## Security note
 
-The bootstrap uses official network installers for NVM, pyenv, Starship, OpenCode, and HerdR. Pi is installed directly from its official npm package. Review remote installers and packages before running the bootstrap in a sensitive environment.
+The bootstrap uses official network installers for NVM, pyenv, Starship, and OpenCode v2. Pi is installed directly from its official npm package. Review remote installers and packages before running the bootstrap in a sensitive environment.
 
 ## License
 

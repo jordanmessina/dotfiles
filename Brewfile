@@ -20,9 +20,6 @@ brew "ripgrep"
 brew "lazygit"
 brew "tree-sitter-cli"
 
-# Agent tooling
-brew "herdr"
-
 # Repository validation
 brew "shellcheck"
 

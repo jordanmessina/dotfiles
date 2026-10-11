@@ -287,28 +287,23 @@ install_nvm_and_node() {
 }
 
 install_opencode() {
-    if command -v opencode >/dev/null 2>&1 || [ -x "$HOME/.opencode/bin/opencode" ]; then
-        echo "✅ OpenCode is already installed"
-        return
-    fi
-
-    echo "📦 Installing OpenCode..."
-    curl -fsSL https://opencode.ai/install | bash
+    # Always run the v2 installer so an existing v1 installation is upgraded.
+    # Shared shell exports already manage PATH; leave shell startup files alone.
+    echo "📦 Installing/updating OpenCode v2..."
+    curl -fsSL https://opencode.ai/v2/install | bash -s -- --no-modify-path
+    export PATH="$HOME/.opencode/bin:$PATH"
     hash -r
 }
 
 install_pi() {
-    if command -v pi >/dev/null 2>&1; then
-        echo "✅ Pi is already installed"
-        return
-    fi
-
     # The curl installer opens /dev/tty and renders an interactive full-screen
     # flow. This is the same npm installation command it ultimately executes,
     # but remains non-interactive and uses NVM's writable global prefix.
-    echo "📦 Installing Pi..."
+    # Reinstall the latest release on every bootstrap run, including when an
+    # older Pi is already on PATH.
+    echo "📦 Installing/updating Pi to the latest release..."
     npm install -g --ignore-scripts --min-release-age=0 --no-fund --no-audit \
-        @earendil-works/pi-coding-agent
+        @earendil-works/pi-coding-agent@latest
     hash -r
 }
 
@@ -335,22 +330,6 @@ install_pi_packages() {
         pi install "$package"
         installed_packages="${installed_packages}"$'\n'"  $package"
     done < "$manifest"
-}
-
-install_herdr() {
-    if command -v herdr >/dev/null 2>&1; then
-        echo "✅ HerdR is already installed"
-        return
-    fi
-
-    echo "🐑 Installing HerdR..."
-    if [ "$OS" = "macos" ]; then
-        require_command brew
-        brew install herdr
-    else
-        curl -fsSL https://herdr.dev/install.sh | sh
-    fi
-    hash -r
 }
 
 install_vundle() {
@@ -394,7 +373,6 @@ backup_conflicts() {
         "$HOME/.config/starship.toml"
         "$HOME/.config/nvim"
         "$HOME/.config/ghostty/config"
-        "$HOME/.config/herdr/config.toml"
     )
 
     for file in "${conflicts[@]}"; do
@@ -417,12 +395,11 @@ backup_conflicts() {
 
 stow_dotfiles() {
     local backup_dir=""
-    local packages=(bash shell zsh tmux vim nvim misc starship ghostty pi herdr)
+    local packages=(bash shell zsh tmux vim nvim misc starship ghostty pi)
     backup_dir="$HOME/dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
 
     require_command stow
-    mkdir -p "$backup_dir" "$HOME/.config" "$HOME/.config/ghostty" \
-        "$HOME/.config/herdr" "$HOME/.pi"
+    mkdir -p "$backup_dir" "$HOME/.config" "$HOME/.config/ghostty" "$HOME/.pi"
 
     echo "📋 Backing up conflicting dotfiles..."
     backup_conflicts "$backup_dir"
@@ -466,7 +443,6 @@ if [ "$STOW_ONLY" -eq 0 ]; then
     install_opencode
     install_pi
     install_pi_packages
-    install_herdr
     install_vundle
     install_python_tools
 fi

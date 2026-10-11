@@ -1,5 +1,0 @@
-# HerdR runtime state belongs in ~/.config/herdr, not in dotfiles.
-.plugins.lock
-*.log
-*.sock
-session.json

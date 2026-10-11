@@ -3,8 +3,7 @@
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PACKAGES=(bash shell zsh tmux vim nvim misc starship ghostty pi herdr)
-FORK_AGENT_PACKAGE="git:github.com/jordanmessina/pi-fork-agent@c767e3f2324d0b291c113965b41f4ab24621b5ca"
+PACKAGES=(bash shell zsh tmux vim nvim misc starship ghostty pi)
 SHELL_FILES=(
     bootstrap.sh
     macos/defaults.sh
@@ -21,12 +20,16 @@ SHELL_FILES=(
 cd "$ROOT"
 
 echo "Checking Bash syntax..."
-bash -n "${SHELL_FILES[@]}"
+for file in "${SHELL_FILES[@]}" scripts/test.sh scripts/test-docker.sh scripts/verify-bootstrap.sh; do
+    bash -n "$file"
+done
 
 if command -v zsh >/dev/null 2>&1; then
     echo "Checking Zsh syntax..."
-    zsh -n zsh/.zshrc shell/.shell/exports shell/.shell/aliases \
-        shell/.shell/functions shell/.shell/keybindings shell/.shell/completions
+    for file in zsh/.zshrc shell/.shell/exports shell/.shell/aliases \
+        shell/.shell/functions shell/.shell/keybindings shell/.shell/completions; do
+        zsh -n "$file"
+    done
 fi
 
 if command -v shellcheck >/dev/null 2>&1; then
@@ -44,17 +47,15 @@ fi
 echo "Testing Stow packages in an isolated home..."
 test_home="$(mktemp -d)"
 trap 'rm -rf "$test_home"' EXIT
-mkdir -p "$test_home/.config/ghostty" "$test_home/.config/herdr" "$test_home/.pi"
+mkdir -p "$test_home/.config/ghostty" "$test_home/.pi"
 stow --dir="$ROOT" --target="$test_home" "${PACKAGES[@]}"
 
 [ -L "$test_home/.bashrc" ]
 [ -L "$test_home/.config/ghostty/config" ]
 grep -Eq '^shell-integration-features = .*ssh-terminfo' \
     "$test_home/.config/ghostty/config"
-[ -L "$test_home/.config/herdr/config.toml" ]
 [ -L "$test_home/.pi/web-search.json" ]
-[ ! -e "$test_home/.pi/agent/extensions/fork-agent" ]
-grep -Fqx "$FORK_AGENT_PACKAGE" PiPackages
+grep -Fqx 'npm:pi-web-access' PiPackages
 for network in \
     127.0.0.0/8 10.0.0.0/8 100.64.0.0/10 172.16.0.0/12 \
     192.168.0.0/16 ::1/128 fc00::/7 fe80::/10; do
