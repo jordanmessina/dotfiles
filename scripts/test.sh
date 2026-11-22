@@ -3,7 +3,6 @@
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PACKAGES=(bash shell zsh tmux vim nvim misc starship ghostty pi)
 SHELL_FILES=(
     bootstrap.sh
     macos/defaults.sh
@@ -47,11 +46,16 @@ fi
 echo "Testing Stow packages in an isolated home..."
 test_home="$(mktemp -d)"
 trap 'rm -rf "$test_home"' EXIT
-mkdir -p "$test_home/.config/ghostty" "$test_home/.pi"
-stow --dir="$ROOT" --target="$test_home" "${PACKAGES[@]}"
+HOME="$test_home" ./bootstrap.sh --stow-only
+[ -f "$test_home/.shell.local" ]
+[ ! -L "$test_home/.shell.local" ]
+[ ! -s "$test_home/.shell.local" ]
+printf '%s\n' 'export DOTFILES_LOCAL_TEST=loaded' > "$test_home/.shell.local"
+HOME="$test_home" ./bootstrap.sh --stow-only
 
 [ -L "$test_home/.bashrc" ]
 [ -L "$test_home/.config/ghostty/config" ]
+grep -Fxq 'font-family = MonoLisaCode' "$test_home/.config/ghostty/config"
 grep -Eq '^shell-integration-features = .*ssh-terminfo' \
     "$test_home/.config/ghostty/config"
 [ -L "$test_home/.pi/web-search.json" ]
@@ -64,10 +68,15 @@ done
 
 HOME="$test_home" bash --noprofile --norc -c '
     source "$HOME/.bashrc"
+    set -e
     type mkcd >/dev/null
     type extract >/dev/null
     type venv_source >/dev/null
+    [ "$DOTFILES_LOCAL_TEST" = loaded ]
 '
+if command -v zsh >/dev/null 2>&1; then
+    HOME="$test_home" zsh -f -c 'source "$HOME/.zshrc" && [ "$DOTFILES_LOCAL_TEST" = loaded ]'
+fi
 
 if command -v tmux >/dev/null 2>&1; then
     echo "Checking tmux configuration..."

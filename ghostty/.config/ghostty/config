@@ -1,6 +1,8 @@
 # Ghostty configuration
 # Managed by ~/dotfiles and stowed to ~/.config/ghostty/config.
 
+font-family = MonoLisaCode
+
 # Detect the active shell so the same configuration works with Bash and Zsh.
 shell-integration = detect
 

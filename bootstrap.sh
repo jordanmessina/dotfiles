@@ -14,7 +14,7 @@ Usage: ./bootstrap.sh [options]
 Options:
   --macos-defaults  Apply the macOS defaults in macos/defaults.sh
   --skip-packages   Skip the Homebrew/apt package installation step
-  --stow-only       Only back up conflicts and link dotfiles
+  --stow-only       Set up dotfiles without installing tools
   -h, --help        Show this help
 EOF
 }
@@ -438,6 +438,9 @@ if [ "$STOW_ONLY" -eq 0 ]; then
         echo "📦 Skipping OS package installation"
     fi
 
+    if [ "$OS" = "macos" ]; then
+        defaults write com.superlogical.rex Workspace.terminalFontName -string MonoLisaCode
+    fi
     mkdir -p "$HOME/.local/bin"
     install_nvm_and_node
     install_opencode
@@ -448,6 +451,11 @@ if [ "$STOW_ONLY" -eq 0 ]; then
 fi
 
 stow_dotfiles
+
+# Keep machine-specific overrides outside the Stow tree and preserve them on reruns.
+if [ ! -e "$HOME/.shell.local" ] && [ ! -L "$HOME/.shell.local" ]; then
+    (umask 077; set -C; : > "$HOME/.shell.local")
+fi
 
 if [ "$STOW_ONLY" -eq 0 ]; then
     install_vim_plugins

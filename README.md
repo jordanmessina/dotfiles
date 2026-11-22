@@ -23,7 +23,7 @@ The bootstrap is designed to be rerunnable. Existing conflicting dotfiles are mo
 ```text
 --macos-defaults  Apply macos/defaults.sh
 --skip-packages   Skip Homebrew/apt packages, but install user-level tools
---stow-only       Only back up conflicts and link dotfiles
+--stow-only       Set up dotfiles without installing tools
 -h, --help        Show help
 ```
 
@@ -48,6 +48,10 @@ Homebrew dependencies are declared in [`Brewfile`](Brewfile):
 - Font: JetBrains Mono Nerd Font
 
 Homebrew itself must already be installed.
+
+**Terminal font:** Ghostty and Rex are configured to use `MonoLisaCode`. These dotfiles assume you’ve already installed it on the machine running the terminal; bootstrap does not install MonoLisa or access iCloud Drive.
+
+**Note for Jordan:** Your copy is at `iCloud Drive/Fonts/MonoLisaCode.zip`. On a new Mac, unzip it and install the upright and italic `.ttf` files with Font Book. You don’t need to install it in Docker or on SSH hosts.
 
 ### Linux
 
@@ -110,6 +114,10 @@ Bash and Zsh both source modules from `~/.shell/`:
 - `functions` — file, Python, networking, and fzf helpers
 - `keybindings` — shared Emacs-style line navigation
 - `completions` — completion for custom functions
+
+For settings specific to one machine, edit `~/.shell.local`. Bootstrap creates it empty if missing (including with `--stow-only`) and leaves existing contents alone. Bash and Zsh source it **after** the shared modules, so it can override their settings. It lives directly in your home directory, outside the repository. If you use Stow manually, you can create it yourself.
+
+**Note for future agents:** Stow links live shell files such as `~/.bash_profile` and `~/.zshrc` into this repo. If you find unexpected uncommitted changes, inspect `git diff` before committing or reverting them. An installer may have edited a linked file directly (for example, Docker Desktop appending a PATH entry). If the addition is specific to this machine, it belongs in `~/.shell.local`. Confirm with the user before moving it, and leave unrelated edits intact.
 
 Notable commands include:
 
