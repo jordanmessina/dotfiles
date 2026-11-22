@@ -58,6 +58,10 @@ HOME="$test_home" ./bootstrap.sh --stow-only
 grep -Fxq 'font-family = MonoLisaCode' "$test_home/.config/ghostty/config"
 grep -Eq '^shell-integration-features = .*ssh-terminfo' \
     "$test_home/.config/ghostty/config"
+[ -L "$test_home/.config/rex/init.lua" ]
+if command -v rex >/dev/null 2>&1; then
+    rex config check "$test_home/.config/rex/init.lua"
+fi
 [ -L "$test_home/.pi/web-search.json" ]
 grep -Fqx 'npm:pi-web-access' PiPackages
 for network in \

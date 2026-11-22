@@ -92,6 +92,7 @@ The bootstrap also:
 ├── misc/                    # ~/.hushlogin
 ├── nvim/                    # ~/.config/nvim (LazyVim)
 ├── pi/                      # ~/.pi configuration
+├── rex/                     # ~/.config/rex/init.lua
 ├── shell/                   # Shared aliases, exports, functions, etc.
 ├── starship/                # ~/.config/starship.toml
 ├── tmux/                    # ~/.tmux.conf
@@ -104,6 +105,18 @@ The bootstrap also:
 ```
 
 Each Stow package mirrors its destination under `$HOME`. For example, `starship/.config/starship.toml` becomes `~/.config/starship.toml`.
+
+## Rex pane shortcuts
+
+Press `Ctrl+B`, release it, then press:
+
+- An arrow to focus the adjacent Rex pane.
+- `%` (`Shift+5` on a US keyboard) to open a pane on the **right**.
+- `"` (`Shift+'` on a US keyboard) to open a pane **below**.
+
+Rex’s built-in shortcuts still work. To target **tmux inside Rex** instead, press `Ctrl+B` twice before the arrow or split key. The double prefix sends one literal `Ctrl+B` to the terminal.
+
+After editing `rex/.config/rex/init.lua`, run `rex config check && rex config reload`.
 
 ## Shell configuration
 
@@ -162,8 +175,8 @@ Each machine keeps its own `~/.pi/agent/settings.json`, credentials, and runtime
 Install selected packages without running bootstrap:
 
 ```bash
-mkdir -p ~/.config/ghostty ~/.pi
-stow --target="$HOME" shell zsh starship tmux nvim ghostty pi
+mkdir -p ~/.config/ghostty ~/.config/rex ~/.pi
+stow --target="$HOME" shell zsh starship tmux nvim ghostty rex pi
 ```
 
 Remove links for a package:
